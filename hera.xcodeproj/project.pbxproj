@@ -33,6 +33,7 @@
 		2FC9E478269FD8B700575BC4 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		2FC9E480269FD91A00575BC4 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		2FC9E482269FDA8300575BC4 /* libglfw.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libglfw.3.dylib; path = ../../../../usr/local/lib/libglfw.3.dylib; sourceTree = "<group>"; };
+		2FCFF57826A776730068D847 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -51,6 +52,7 @@
 		2FC9E46C269FD8B700575BC4 = {
 			isa = PBXGroup;
 			children = (
+				2FCFF57826A776730068D847 /* README.md */,
 				2F497B9526A7754E00D700B7 /* .gitignore */,
 				2FC9E477269FD8B700575BC4 /* hera */,
 				2FC9E476269FD8B700575BC4 /* Products */,
