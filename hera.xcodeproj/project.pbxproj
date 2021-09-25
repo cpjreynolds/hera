@@ -113,7 +113,7 @@
 		2FC9E46D269FD8B700575BC4 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1250;
+				LastUpgradeCheck = 1300;
 				TargetAttributes = {
 					2FC9E474269FD8B700575BC4 = {
 						CreatedOnToolsVersion = 12.5.1;
@@ -271,6 +271,7 @@
 		2FC9E47D269FD8B700575BC4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				GCC_PREPROCESSOR_DEFINITIONS = GL_SILENCE_DEPRECATION;
 				GCC_WARN_NON_VIRTUAL_DESTRUCTOR = YES;
@@ -281,6 +282,7 @@
 		2FC9E47E269FD8B700575BC4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				GCC_PREPROCESSOR_DEFINITIONS = GL_SILENCE_DEPRECATION;
 				GCC_WARN_NON_VIRTUAL_DESTRUCTOR = YES;
