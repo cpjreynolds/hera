@@ -37,7 +37,7 @@ set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(glfw)
 
 # ==[glm]==
-add_subdirectory(glm)
+add_subdirectory(glm-1.0.1)
 
 # ==[doctest]==
 #set(DOCTEST_WITH_MAIN_IN_STATIC_LIB OFF CACHE BOOL "" FORCE)
@@ -80,8 +80,8 @@ add_subdirectory(quill)
 # ==[sol]==
 set(SOL2_ENABLE_INSTALL OFF)
 set(SOL2_BUILD_LUA FALSE CACHE BOOL "" FORCE)
-add_subdirectory(sol2-develop)
+add_subdirectory(sol2)
 list(APPEND CMAKE_MODULE_PATH
-    "${CMAKE_CURRENT_SOURCE_DIR}/sol2-develop/cmake/Packages"
-    "${CMAKE_CURRENT_SOURCE_DIR}/sol2-develop/cmake/Modules")
+    "${CMAKE_CURRENT_SOURCE_DIR}/sol2/cmake/Packages"
+    "${CMAKE_CURRENT_SOURCE_DIR}/sol2/cmake/Modules")
 find_package(LuaBuild REQUIRED COMPONENTS ${SOL2_LUA_VERSION})

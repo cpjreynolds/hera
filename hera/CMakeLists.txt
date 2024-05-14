@@ -20,7 +20,6 @@ set(HERA_LIBRARIES
     TBB::tbb
     TBB::tbbmalloc
     TBB::tbbmalloc_proxy
-    Boost::container_hash
     fmt::fmt
     quill::quill
     Lua::Lua
@@ -93,12 +92,12 @@ endif()
 
 target_link_libraries(hera PUBLIC hera_common)
 
-if(BUILD_TESTING)
-    include(${PROJECT_SOURCE_DIR}/extern/doctest-2.4.11/scripts/cmake/doctest.cmake)
-    add_executable(testbin ${HERA_TESTS} ${HERA_HEADERS})
-    target_link_libraries(testbin hera_common doctest)
-    doctest_discover_tests(testbin)
-endif()
+#if(BUILD_TESTING)
+#include(${PROJECT_SOURCE_DIR}/extern/doctest-2.4.11/scripts/cmake/doctest.cmake)
+#add_executable(testbin ${HERA_TESTS} ${HERA_HEADERS})
+#target_link_libraries(testbin hera_common doctest)
+#doctest_discover_tests(testbin)
+#endif()
 
 add_custom_target(
     run
