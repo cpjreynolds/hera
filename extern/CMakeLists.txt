@@ -52,6 +52,8 @@ block()
     set(CMAKE_WARN_DEPRECATED FALSE CACHE BOOL "" FORCE)
     set(BUILD_SHARED_LIBS ON)
     add_subdirectory(cpptrace EXCLUDE_FROM_ALL)
+    get_target_property(cpptrace_target cpptrace::cpptrace ALIASED_TARGET)
+    target_compile_options(${cpptrace_target} PRIVATE -Wno-vla-cxx-extension)
 endblock()
 
 # fix for XCode trying to compile .S with `-x c` flag.
@@ -68,14 +70,13 @@ endif()
 #add_subdirectory(boost-1.84.0)
 
 # ==[fmt]==
-# (must be build before quill
 set(FMT_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(fmt)
 
 # ==[quill]==
 set(QUILL_FMT_EXTERNAL ON CACHE BOOL "" FORCE)
 add_subdirectory(quill)
-#target_compile_options(quill PRIVATE -Wno-deprecated)
+target_compile_options(quill PRIVATE -Wno-deprecated)
 
 # ==[sol]==
 set(SOL2_ENABLE_INSTALL OFF)

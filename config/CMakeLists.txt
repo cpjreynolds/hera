@@ -20,6 +20,8 @@ cmake_path(RELATIVE_PATH KEYMAP_PATH
 
 configure_file(${CONFIG_INPUT} ${CONFIG_OUTPUT})
 
+#add_custom_target(config DEPENDS ${CONFIG_OUTPUT} SOURCES ${CONFIG_INPUT})
+
 # propagate necessary variables
 set(CONFIG_OUTPUT_DIR ${CONFIG_OUTPUT_DIR} PARENT_SCOPE)
 set(CONFIG_OUTPUT ${CONFIG_OUTPUT} PARENT_SCOPE)

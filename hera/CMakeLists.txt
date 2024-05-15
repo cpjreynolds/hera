@@ -6,8 +6,7 @@ set(HERA_TESTS ${HERA_SOURCES})
 # abstract dependencies
 set(HERA_DEPENDENCIES
     shaders
-    assets
-    config)
+    assets)
 
 # concrete binary dependencies
 set(HERA_LIBRARIES
@@ -20,8 +19,8 @@ set(HERA_LIBRARIES
     TBB::tbb
     TBB::tbbmalloc
     TBB::tbbmalloc_proxy
-    fmt::fmt
     quill::quill
+    fmt::fmt
     Lua::Lua
     sol2::sol2
     freetype
@@ -73,24 +72,30 @@ add_executable(hera ${HERA_SOURCES} ${HERA_HEADERS})
 target_compile_definitions(hera PUBLIC DOCTEST_CONFIG_DISABLE)
 
 # interface for compile options shared between targets
-add_library(hera_common INTERFACE)
+# add_library(hera_common INTERFACE)
 
-target_compile_features(hera_common INTERFACE cxx_std_23 c_std_11)
+# target_compile_features(hera_common INTERFACE cxx_std_23 c_std_11)
+# target_include_directories(hera_common INTERFACE ${PROJECT_SOURCE_DIR})
+# target_compile_definitions(hera_common INTERFACE ${HERA_DEFINES})
+# target_link_libraries(hera_common INTERFACE ${HERA_LIBRARIES})
+# add_dependencies(hera_common INTERFACE ${HERA_DEPENDENCIES})
 
-target_include_directories(hera_common INTERFACE ${PROJECT_SOURCE_DIR})
+target_compile_features(hera PUBLIC cxx_std_23 c_std_11)
 
-target_compile_definitions(hera_common INTERFACE ${HERA_DEFINES})
+target_include_directories(hera PUBLIC ${PROJECT_SOURCE_DIR})
 
-target_link_libraries(hera_common INTERFACE ${HERA_LIBRARIES})
-add_dependencies(hera_common INTERFACE ${HERA_DEPENDENCIES})
+target_compile_definitions(hera PRIVATE ${HERA_DEFINES})
+
+target_link_libraries(hera PUBLIC ${HERA_LIBRARIES})
+add_dependencies(hera ${HERA_DEPENDENCIES})
 
 if(MSVC)
-    target_compile_options(hera_common INTERFACE /W4)
+    target_compile_options(hera PUBLIC /W4)
 else()
-    target_compile_options(hera_common INTERFACE -Wall -Wextra -fno-char8_t)
+    target_compile_options(hera PUBLIC -Wall -Wextra -fno-char8_t)
 endif()
 
-target_link_libraries(hera PUBLIC hera_common)
+#target_link_libraries(hera PUBLIC hera_common)
 
 #if(BUILD_TESTING)
 #include(${PROJECT_SOURCE_DIR}/extern/doctest-2.4.11/scripts/cmake/doctest.cmake)
