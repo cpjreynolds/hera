@@ -16,12 +16,13 @@
 
 #include <hera/render/cube.hpp>
 
+namespace hera {
 namespace {
 
 struct cube_vertex {
-    float pos[3];
-    float normal[3];
-    float tex[2];
+    vec3 pos;
+    vec3 normal;
+    vec2 tex;
 };
 
 static constexpr cube_vertex vertices[] = {
@@ -69,10 +70,8 @@ static constexpr cube_vertex vertices[] = {
 };
 } // namespace
 
-namespace hera {
-
 template<>
-struct gl::vertex<cube_vertex> : attributes<float[3], float[3], float[2]> {};
+struct gl::vertex<cube_vertex> : attributes<vec3, vec3, vec2> {};
 
 namespace render {
 
