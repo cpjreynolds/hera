@@ -21,7 +21,7 @@
 #include <hera/image.hpp>
 
 namespace hera {
-image_load_t load_image(const path& pat)
+image_data load_image(const path& pat)
 {
     ivec2 size;
     int channels;
@@ -33,7 +33,7 @@ image_load_t load_image(const path& pat)
             channels};
 }
 
-image_load_t load_image(const unsigned char* buf, int len)
+image_data load_image(const unsigned char* buf, int len)
 {
     ivec2 size;
     int channels;

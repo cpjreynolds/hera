@@ -18,19 +18,22 @@
 
 namespace hera {
 
-using image_load_t =
-    tuple<unique_ptr<unsigned char, decltype(&free)>, ivec2, int>;
+struct image_data {
+    unique_ptr<unsigned char, decltype(&free)> buf;
+    ivec2 size;
+    int channels;
+};
 
 // loads an image file.
 //
 // returns {buffer, size, channels}
-image_load_t load_image(const path&);
+image_data load_image(const path&);
 
-image_load_t load_image(const unsigned char* buf, int len);
+image_data load_image(const unsigned char* buf, int len);
 
 template<spanner R>
     requires same_as<range_v<R>, unsigned char>
-image_load_t load_image(const R& buf)
+image_data load_image(const R& buf)
 {
     load_image(ranges::cdata(buf), ranges::size(buf));
 }
