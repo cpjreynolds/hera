@@ -45,18 +45,13 @@ concept packed = is_packed<Ts...>;
 
 // specifies a type may be interpreted as an OpenGL vertex attribute.
 template<typename T>
-concept attribute =
-    std::is_trivial_v<T> && std::is_standard_layout_v<T> &&
-    (gl_type<T> ||
-     (std::is_bounded_array_v<T> && gl_type<std::remove_extent_t<T>> &&
-      std::rank_v<T> == 1 && std::extent_v<T> >= 1 && std::extent_v<T> <= 4) ||
-     (gl_type<typename T::value_type> &&
-      (sizeof(T) / sizeof(typename T::value_type)) <= 4 &&
-      (sizeof(T) / sizeof(typename T::value_type)) >= 1));
+concept attribute = std::is_trivial_v<T> && std::is_standard_layout_v<T> &&
+                    (gl_type<T> || (gl_type<element_t<T>> && array_like<T> &&
+                                    lengthof(T{}) > 1 && lengthof(T{}) <= 4));
 
 namespace detail {
-// returns a compile-time constant array of attribute format descriptors for the
-// given types in the given order.
+// returns a compile-time constant array of attribute format descriptors for
+// the given types in the given order.
 template<typename... Ts>
     requires packed<Ts...> && (attribute<Ts> && ...)
 consteval array<AttributeFormat, sizeof...(Ts)> make_attributes()
@@ -67,8 +62,8 @@ consteval array<AttributeFormat, sizeof...(Ts)> make_attributes()
     auto attrfn = [&]<typename TT> consteval -> AttributeFormat {
         AttributeFormat attr{
             .index = index,
-            .size = sizeof(TT) / sizeof(gl_attribute_element_t<TT>),
-            .type = gl_attribute_type_v<TT>,
+            .size = lengthof(TT{}),
+            .type = gl_typeof<element_t<TT>>(),
             .stride = stride,
             .offset = offset,
         };
@@ -96,7 +91,6 @@ struct attributes {
 };
 
 namespace detail {
-
 template<typename T>
 struct formattable_attributes;
 

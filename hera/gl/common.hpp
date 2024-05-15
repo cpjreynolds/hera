@@ -1012,26 +1012,18 @@ concept gl_scalar = std::is_arithmetic_v<T> && sizeof(T) == 4;
 
 // the number of scalar elements in a type.
 template<typename T>
-    requires gl_scalar<T> || gl_scalar<typename T::value_type>
+    requires gl_scalar<T> || gl_scalar<element_t<T>>
 consteval size_t gl_length(const T& t)
 {
-    if constexpr (requires(T v) { v.length(); }) {
-        return sizeof(T) / sizeof(typename T::value_type);
-    }
-    else if constexpr (requires(T v) { v.size(); }) {
-        return t.size();
-    }
-    else {
-        return 1;
-    }
+    return hera::lengthof(t);
 }
 
 // OpenGL vector type. i.e. glm::vecN and array<gl_scalar, N> where N=2,3,4.
-template<typename T, size_t N = gl_length(T{}), typename V = T::value_type>
-concept gl_vector = gl_scalar<typename T::value_type> && gl_length(T{}) <= 4 &&
+template<typename T, size_t N = gl_length(T{}), typename V = element_t<T>>
+concept gl_vector = gl_scalar<element_t<T>> && gl_length(T{}) <= 4 &&
                     gl_length(T{}) > 1 && gl_length(T{}) == N && !requires {
                         typename T::col_type;
-                    } && same_as<typename T::value_type, V>;
+                    } && same_as<element_t<T>, V>;
 
 // OpenGL matrix type.
 template<typename T, typename V = T::value_type>

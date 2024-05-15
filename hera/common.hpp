@@ -135,6 +135,43 @@ concept tuple_like = !std::is_reference_v<T> && requires {
 template<typename T>
 concept pair_like = tuple_like<T> && tuple_size_v<T> == 2;
 
+template<typename T>
+struct element_type;
+
+template<typename T>
+    requires std::is_array_v<T>
+struct element_type<T> {
+    using type = std::remove_all_extents_t<T>;
+};
+
+template<typename T>
+    requires(requires { typename T::value_type; })
+struct element_type<T> {
+    using type = T::value_type;
+};
+
+template<typename T>
+using element_t = element_type<T>::type;
+
+// consteval number of elements
+template<typename T>
+consteval size_t lengthof(const T& t)
+{
+    if constexpr (requires { typename T::length_type; }) {
+        return sizeof(T) / sizeof(typename T::value_type);
+    }
+    else if constexpr (requires(T v) { std::size(t); }) {
+        return std::size(t);
+    }
+    else {
+        return 1;
+    }
+}
+
+template<typename T, size_t N = lengthof(T{}), typename E = element_t<T>>
+concept array_like = same_as<element_t<T>, E> && lengthof(T{}) == N &&
+                     !requires(T t) { t.resize(); };
+
 namespace ranges = std::ranges;
 namespace views = std::views;
 
