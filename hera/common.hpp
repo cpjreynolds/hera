@@ -112,6 +112,8 @@ using std::tuple_element_t;
 using std::tuple_size;
 using std::tuple_size_v;
 
+using std::bit_cast;
+
 template<typename T, typename U>
 using like_t = decltype(std::forward_like<T>(declval<U>()));
 

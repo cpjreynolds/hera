@@ -469,17 +469,12 @@ struct raw_input {
     // flush all input signals.
     static void flush();
 
-    static span<key_event> events();
-
-    // returns the cursor (dx, dy) since last call.
     // returns the cursor (x, y).
     static vec2 cursor_pos();
     // gets the cursor position directly from the input system.
     static vec2 get_cursor();
     // sets the cursor position.
     static void set_cursor(vec2);
-    // returns the scroll (dx, dy) since last call.
-    // static vec2 scroll();
 
     // framebuffer size (w, h)
     static ivec2 framebuffer_size();
@@ -490,7 +485,9 @@ struct raw_input {
     // content scale (x, y)
     static vec2 content_scale();
 
+    // maps GLFW virtual coords to (0, 1)
     static const vec2& virtualmap();
+    // maps pixel coords to (0, 1)
     static const vec2& pixelmap();
 
     // DPI based on primary monitor size and WINDOW content scale.
@@ -543,6 +540,14 @@ private:
     static vec2 _pixelmap_inv;
     // maps (0, 1) to virtual coords
     static vec2 _virtualmap_inv;
+
+    static mat3 _pix2ndc;
+    static mat3 _virt2ndc;
+    static mat3 _ndc2pix;
+    static mat3 _ndc2virt;
+
+    static mat3 make_ortho2d(float w, float h);
+    static mat3 make_ortho2d_inv(float w, float h);
 
     // DPI
     static uvec2 _dpi;

@@ -588,6 +588,25 @@ void raw_input::window_scale_cb(GLFWwindow*, float x, float y)
     cscale.post(_cscale);
 }
 
+mat3 raw_input::make_ortho2d(float w, float h)
+{
+    mat3 m;
+    m[0][0] = 2.f / w;
+    m[1][1] = 2.f / h;
+    m[2][0] = -1;
+    m[2][1] = -1;
+    return m;
+}
+mat3 raw_input::make_ortho2d_inv(float w, float h)
+{
+    mat3 m;
+    m[0][0] = w / 2.f;
+    m[1][1] = h / 2.f;
+    m[2][0] = w / 2.f;
+    m[2][1] = h / 2.f;
+    return m;
+}
+
 // input map
 
 input_map::map_t input_map::from_toml(const toml::table& table)

@@ -20,6 +20,7 @@
 #include <hera/log.hpp>
 #include <hera/toml.hpp>
 #include <hera/gl/common.hpp>
+#include <hera/event.hpp>
 
 #include <hera/config.hpp>
 
@@ -35,15 +36,14 @@ try
     // is this a terrible idea?
     std::locale::global(std::locale(""));
 
-    // fmt::detail::char8_type x;
-    // constexpr auto y = std::is_enum_v<decltype(x)>;
-
     init::logging();
     init::error();
     init::config();
     init::window();
     init::gl();
     init::input();
+
+    // hera::foo();
 
     State state;
     state.run();
