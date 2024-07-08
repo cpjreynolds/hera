@@ -101,6 +101,7 @@ using glm::vec4;
 using std::convertible_to;
 using std::decay_t;
 using std::declval;
+using std::invocable;
 using std::remove_const_t;
 using std::remove_cv_t;
 using std::remove_cvref_t;

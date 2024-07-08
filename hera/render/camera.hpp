@@ -63,10 +63,10 @@ class Camera : observer {
 public:
     Camera() : matblock{"Matrices"}
     {
-        raw_input::actions.connect(*this, &Camera::on_action);
-        raw_input::cursor.connect(*this, &Camera::on_cursor);
-        raw_input::scroll.connect(*this, &Camera::on_scroll);
-        raw_input::fbsize.connect(*this, &Camera::on_fbsize);
+        raw_input::actions.connect<&Camera::on_action>(this);
+        raw_input::cursor.connect<&Camera::on_cursor>(this);
+        raw_input::scroll.connect<&Camera::on_scroll>(this);
+        raw_input::fbsize.connect<&Camera::on_fbsize>(this);
     };
 
     void update();

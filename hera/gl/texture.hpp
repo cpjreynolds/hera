@@ -43,15 +43,22 @@ struct TextureParams {
     }
 };
 
-struct TextureArray : object<id::texture(1)> {
+template<texture_t Target>
+struct Texture : object<id::texture(1)> {
+    static constexpr texture_t target = Target;
     static constexpr id::texture texID{0};
-    static constexpr texture_t target = texture_t::array_2d;
 
-    ivec3 size{0};
-    internal_f iformat;
-    mutable texture_u _unit = 3;
+    mutable texture_u _unit;
 
-    constexpr id::texture id() const { return get<texID>(); }
+    Texture(texture_u unit = 0) : _unit{unit} {};
+
+    id::texture id() const { return get<texID>(); }
+
+    void unit(texture_u v) const { _unit = v; }
+    texture_u unit() const { return _unit; }
+
+    void params(const TextureParams& params) const { params.apply(target); }
+
     void bind(optional<texture_u> unit = nullopt) const
     {
         if (unit) {
@@ -59,18 +66,22 @@ struct TextureArray : object<id::texture(1)> {
         }
         gl::bind(_unit);
         gl::bind(id(), target);
+        gl::checkerror();
     }
 
-    void unit(texture_u v) const { _unit = v; }
-    texture_u unit() const { return _unit; }
+    void unbind() const { gl::unbind(target); }
+    bool is_bound() const { return id() == gl::current(target); }
+};
 
-    void params(const TextureParams& params) { params.apply(target); }
+struct TextureArray : Texture<texture_t::array_2d> {
+    ivec3 size{0};
+    internal_f iformat;
 
     TextureArray() {};
     TextureArray(internal_f internalf, int w, int h, int n, texture_u unit = 0)
-        : size{w, h, n},
-          iformat{internalf},
-          _unit{unit}
+        : Texture{unit},
+          size{w, h, n},
+          iformat{internalf}
     {
         bind();
         gl::allocate(target, iformat, size.x, size.y, size.z);
@@ -80,9 +91,9 @@ struct TextureArray : object<id::texture(1)> {
         requires gl_type<range_v<R>>
     TextureArray(internal_f internalf, int w, int h, int n, const R& pixels,
                  pixel_f pixelf = {}, texture_u unit = 0)
-        : size{w, h, n},
-          iformat{internalf},
-          _unit{unit}
+        : Texture{unit},
+          size{w, h, n},
+          iformat{internalf}
     {
         if (!pixelf) {
             pixelf = pixel_f{iformat};
@@ -124,33 +135,9 @@ struct TextureArray : object<id::texture(1)> {
     }
 };
 
-struct Texture : object<id::texture(1)> {
-    static constexpr id::texture texID{0};
-    static constexpr texture_t target = texture_t::twoD;
-    mutable texture_u _unit{0};
-
-    Texture(const path& fpath, texture_u unit = texture_u{0},
-            const TextureParams& params = {});
-
-    Texture(const Texture&) = default;
-    Texture& operator=(const Texture&) = default;
-
-    constexpr id::texture id() const { return get<texID>(); }
-
-    void bind(optional<texture_u> unit = nullopt) const
-    {
-        if (unit) {
-            _unit = *unit;
-        }
-        gl::bind(_unit);
-        gl::bind(id(), target);
-        gl::checkerror();
-    }
-
-    void unit(texture_u v) const { _unit = v; }
-    texture_u unit() const { return _unit; }
-    void unbind() const { gl::unbind(target); }
-    bool is_bound() const { return id() == gl::current(target); }
+struct Texture2d : Texture<texture_t::twoD> {
+    Texture2d(const path& fpath, texture_u unit = 0,
+              const TextureParams& params = {});
 };
 
 } // namespace hera::gl

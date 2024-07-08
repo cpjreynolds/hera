@@ -66,7 +66,7 @@ struct State : observer {
     {
         gl::checkerror();
         camera.load_into(renderer.shaders);
-        raw_input::actions.connect(*this, &State::on_action);
+        raw_input::actions.connect<&State::on_action>(this);
     };
 
     void on_action(input_action);

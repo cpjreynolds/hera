@@ -29,7 +29,7 @@ Renderer::Renderer(const Config& config)
     LOG_DEBUG("init renderer");
     path shaderpath = config["shaders.path"];
     shaders.load(shaderpath);
-    raw_input::actions.connect(*this, &Renderer::on_action);
+    raw_input::actions.connect<&Renderer::on_action>(this);
     LOG_INFO("{}", fmt::to_string(*this));
     LOG_DEBUG("init renderer done");
 }

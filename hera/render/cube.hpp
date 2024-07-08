@@ -31,8 +31,8 @@ namespace hera::render {
 
 class Cube {
     gl::VertexBuffer vbuf;
-    gl::Texture tex;
-    gl::Texture spec;
+    gl::Texture2d tex;
+    gl::Texture2d spec;
     mat4 _model{1.0f};
     mat4 _prev_model{1.0f};
 

@@ -19,8 +19,9 @@
 
 namespace hera::gl {
 
-Texture::Texture(const path& fpath, texture_u unit, const TextureParams& params)
-    : _unit{unit}
+Texture2d::Texture2d(const path& fpath, texture_u unit,
+                     const TextureParams& params)
+    : Texture{unit}
 {
     if (!fs::exists(fpath)) {
         throw hera::runtime_error(string(fpath.filename()) + " does not exist");
