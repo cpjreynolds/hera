@@ -253,16 +253,23 @@ struct trans_hash : std::hash<T> {
     using is_transparent = void;
 };
 
-template<typename K, typename T, typename H = K, typename C = std::equal_to<>>
+template<typename T>
+using borrowed_type = std::conditional_t<same_as<T, string>, string_view, T>;
+
+template<typename K, typename T, typename H = borrowed_type<K>,
+         typename C = std::equal_to<>>
 using hash_map = unordered_map<K, T, trans_hash<H>, C>;
 
-template<typename K, typename T, typename H = K, typename C = std::equal_to<>>
+template<typename K, typename T, typename H = borrowed_type<K>,
+         typename C = std::equal_to<>>
 using hash_multimap = unordered_multimap<K, T, trans_hash<H>, C>;
 
-template<typename T, typename H = T, typename C = std::equal_to<>>
+template<typename T, typename H = borrowed_type<T>,
+         typename C = std::equal_to<>>
 using hash_set = unordered_set<T, trans_hash<H>, C>;
 
-template<typename T, typename H = T, typename C = std::equal_to<>>
+template<typename T, typename H = borrowed_type<T>,
+         typename C = std::equal_to<>>
 using hash_multiset = unordered_multiset<T, trans_hash<H>, C>;
 
 using std::fstream;

@@ -26,17 +26,16 @@
 namespace hera::gl {
 
 class Shader : private object<id::program(1)> {
-    inline static hash_set<string, string_view> _missing;
+    inline static hash_set<string> _missing;
     static constexpr id::program pID{0};
     path _fpath;
     string _fname;
     shader_t _type;
 
     // name -> {loc, type, size}
-    mutable hash_map<string, tuple<GLint, GLenum, GLint>, string_view>
-        _uniforms{};
+    mutable hash_map<string, tuple<GLint, GLenum, GLint>> _uniforms{};
     // name -> {idx}
-    mutable hash_set<string, string_view> _blocks;
+    mutable hash_set<string> _blocks;
 
     explicit Shader(nullptr_t) : object{nullptr} {}
 
@@ -342,10 +341,10 @@ bool type_eq(GLenum other)
 } // namespace detail
 
 class Shaders {
-    hash_map<string, Shader::block_info, string_view> _block_infos;
-    hash_map<string, UniformBuffer<>, string_view> _blocks;
-    hash_map<string, Shader, string_view> _shaders;
-    hash_map<string, Pipeline, string_view> _pipelines;
+    hash_map<string, Shader::block_info> _block_infos;
+    hash_map<string, UniformBuffer<>> _blocks;
+    hash_map<string, Shader> _shaders;
+    hash_map<string, Pipeline> _pipelines;
 
     const Pipeline* _active = &Pipeline::null;
 
