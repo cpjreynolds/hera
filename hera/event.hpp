@@ -100,13 +100,11 @@ struct thunk {
 
     constexpr friend bool operator==(const thunk& lhs, const thunk& rhs)
     {
-        return pair{lhs.instance, lhs.thunktion} ==
-               pair{rhs.instance, rhs.thunktion};
+        return static_cast<thunk_key>(lhs) == static_cast<thunk_key>(rhs);
     }
     constexpr friend auto operator<=>(const thunk& lhs, const thunk& rhs)
     {
-        return pair{lhs.instance, lhs.thunktion} <=>
-               pair{rhs.instance, rhs.thunktion};
+        return static_cast<thunk_key>(lhs) <=> static_cast<thunk_key>(rhs);
     }
 
     constexpr friend bool operator==(const thunk& lhs, const uintptr_t& rhs)
