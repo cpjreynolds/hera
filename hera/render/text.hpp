@@ -27,7 +27,7 @@
 #include <hera/gl/buffer.hpp>
 #include <hera/gl/object.hpp>
 
-namespace hera::render {
+namespace hera {
 
 struct Alphabet {
     ivec2 size;
@@ -55,6 +55,6 @@ struct Scribe {
     void put(string_view, float x, float y, const gl::Pipeline&) const;
 };
 
-} // namespace hera::render
+} // namespace hera
 
 #endif

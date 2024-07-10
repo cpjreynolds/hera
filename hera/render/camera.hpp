@@ -22,9 +22,9 @@
 #include <hera/input.hpp>
 #include <hera/event.hpp>
 
-namespace hera::render {
+namespace hera {
 
-class Camera : observer {
+class Camera : public observer {
     // view, projection, ortho_proj, view_pos
     gl::UniformBuffer<mat4, mat4, mat4, vec3> matblock;
 
@@ -78,6 +78,6 @@ public:
     void on_scroll(vec2);
     void on_fbsize(ivec2);
 };
-} // namespace hera::render
+} // namespace hera
 
 #endif

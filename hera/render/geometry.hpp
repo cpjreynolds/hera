@@ -17,8 +17,13 @@
 #ifndef HERA_RENDER_GEOMETRY_HPP
 #define HERA_RENDER_GEOMETRY_HPP
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/matrix_interpolation.hpp>
+
 #include <hera/common.hpp>
 #include <hera/gl/vertex.hpp>
+#include <hera/gl/buffer.hpp>
+#include <hera/gl/program.hpp>
 
 namespace hera {
 
@@ -39,11 +44,37 @@ static constexpr uint16_t basic_quad_indices[] = {0, 1, 3, 1, 2, 3};
 
 } // namespace
 
+class Geometry {
+protected:
+    gl::VertexBuffer _vbuf;
+    mat4 _model{1.0f};
+    mat4 _prev_model{1.0f};
+
+    Geometry() = default;
+    Geometry(const gl::VertexBuffer& vbuf) : _vbuf{vbuf} {};
+
+public:
+    virtual ~Geometry() {};
+
+    virtual void draw(const gl::Pipeline& shader, float alpha) const = 0;
+
+    mat4& model() { return _model; }
+    const mat4& model() const { return _model; }
+    mat4& model(const mat4& nm)
+    {
+        _prev_model = std::exchange(_model, nm);
+        return _model;
+    }
+
+    mat4 interpolate(float alpha) const
+    {
+        return glm::interpolate(_prev_model, _model, alpha);
+    }
+};
+
 template<>
 struct gl::vertex<quad_vertex> : attributes<vec3, vec2> {};
 
-namespace render {
-}
 } // namespace hera
 
 #endif

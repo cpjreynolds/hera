@@ -48,8 +48,6 @@ namespace hera {
 template<>
 struct gl::vertex<light_vertex> : attributes<float[3]> {};
 
-namespace render {
-
 Light::Light(vec3 pos, vec3 color) : pos{pos}, color{color}, vbuf{vertices}
 {
     model = glm::translate(model, pos);
@@ -68,7 +66,5 @@ void Light::load_into(const gl::Pipeline& prog) const
     prog.uniform("light_pos", pos);
     prog.uniform("light_ambient", ambient);
 }
-
-} // namespace render
 
 } // namespace hera

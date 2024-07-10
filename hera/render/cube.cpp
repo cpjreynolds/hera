@@ -73,12 +73,9 @@ static constexpr cube_vertex vertices[] = {
 template<>
 struct gl::vertex<cube_vertex> : attributes<vec3, vec3, vec2> {};
 
-namespace render {
-
 Cube::Cube(const path& texpath, const path& specpath)
-    : vbuf{vertices},
+    : Geometry{vertices},
       tex{texpath, 0, {.min_filter = GL_LINEAR_MIPMAP_LINEAR}},
       spec{specpath, 0, {.min_filter = GL_LINEAR_MIPMAP_LINEAR}} {};
 
-} // namespace render
 } // namespace hera

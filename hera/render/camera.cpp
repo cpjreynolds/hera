@@ -17,7 +17,7 @@
 #include <hera/render/camera.hpp>
 #include <hera/tick.hpp>
 
-namespace hera::render {
+namespace hera {
 
 void Camera::on_action(input_action act)
 {
@@ -112,4 +112,4 @@ void Camera::load_into(gl::Shaders& shaders) const
     shaders.add_block(matblock);
 }
 
-} // namespace hera::render
+} // namespace hera

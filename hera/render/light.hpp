@@ -21,7 +21,7 @@
 #include <hera/gl/buffer.hpp>
 #include <hera/gl/program.hpp>
 
-namespace hera::render {
+namespace hera {
 
 class Light {
     vec3 pos;
@@ -39,6 +39,6 @@ public:
     // load light parameters into given shader.
     void load_into(const gl::Pipeline&) const;
 };
-} // namespace hera::render
+} // namespace hera
 
 #endif

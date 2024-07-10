@@ -43,7 +43,7 @@ inline static void fterr(FT_Error ec)
     }
 }
 
-namespace hera::render {
+namespace hera {
 namespace {
 struct Face {
     // FT_Face _face = nullptr;
@@ -219,7 +219,7 @@ Alphabet::Alphabet(const Config& config)
     gl::checkerror();
 }
 
-} // namespace hera::render
+} // namespace hera
 
 namespace hera {
 
@@ -280,8 +280,6 @@ static constexpr unsigned char quad_indices[] = {
 template<>
 struct gl::vertex<char_vertex> : attributes<float[4]> {};
 
-namespace render {
-
 Scribe::Scribe(const Config& config) : vbuf{}, alphabet{config}
 {
     gl::checkerror();
@@ -301,5 +299,4 @@ void Scribe::put(char ch, float x, float y, const gl::Pipeline& prog) const
     vbuf.draw();
 }
 
-} // namespace render
 } // namespace hera

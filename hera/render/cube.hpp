@@ -26,47 +26,32 @@
 #include <hera/gl/buffer.hpp>
 #include <hera/gl/texture.hpp>
 #include <hera/gl/program.hpp>
+#include <hera/render/geometry.hpp>
 
-namespace hera::render {
+namespace hera {
 
-class Cube {
-    gl::VertexBuffer vbuf;
+class Cube : public Geometry {
     gl::Texture2d tex;
     gl::Texture2d spec;
-    mat4 _model{1.0f};
-    mat4 _prev_model{1.0f};
 
 public:
     Cube(const path& texpath, const path& spec);
 
-    glm::mat4& model() { return _model; }
-    const glm::mat4& model() const { return _model; }
-    glm::mat4& model(const glm::mat4& nm)
-    {
-        _prev_model = std::exchange(_model, nm);
-        return _model;
-    }
-
-    glm::mat4 terp_model(float alpha) const
-    {
-        return glm::interpolate(_prev_model, _model, alpha);
-    }
-
-    void draw(const gl::Pipeline& shader, float alpha) const
+    void draw(const gl::Pipeline& shader, float alpha) const override
     {
         shader.uniform("a_texture", 0);
         shader.uniform("spec_map", 1);
 
-        auto mod = terp_model(alpha);
+        auto mod = interpolate(alpha);
         shader.uniform("model", mod);
 
         tex.bind(0);
         spec.bind(1);
 
-        vbuf.draw();
+        _vbuf.draw();
     }
 };
 
-} // namespace hera::render
+} // namespace hera
 
 #endif

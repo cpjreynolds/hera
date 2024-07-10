@@ -26,7 +26,7 @@
 #include <hera/render/camera.hpp>
 #include <hera/render/text.hpp>
 
-namespace hera::render {
+namespace hera {
 
 template<typename T>
 concept drawable =
@@ -105,11 +105,11 @@ private:
     friend struct fmt::formatter<Renderer>;
 };
 
-} // namespace hera::render
+} // namespace hera
 
 template<>
-struct fmt::formatter<hera::render::Renderer> : hera::format_parser<> {
-    auto format(const hera::render::Renderer& val, auto& ctx) const
+struct fmt::formatter<hera::Renderer> : hera::format_parser<> {
+    auto format(const hera::Renderer& val, auto& ctx) const
     {
         auto output = ctx.out();
         fmt::format_to(output, "Renderer:\n{}", val.shaders);

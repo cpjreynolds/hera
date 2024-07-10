@@ -31,7 +31,7 @@ namespace hera {
 struct State : observer {
     GLFWwindow* window;
     Config config;
-    render::Renderer renderer;
+    Renderer renderer;
     Ticker ticker;
 
     long render_steps = 0;
@@ -53,11 +53,11 @@ struct State : observer {
     // render data
     vector<float> offsets;
     vector<vec3> rotaxes;
-    vector<render::Cube> cubes;
+    vector<Cube> cubes;
     vector<vec3> cube_pos;
 
-    render::Light light;
-    render::Camera camera;
+    Light light;
+    Camera camera;
 
     State()
         : window{glfwGetCurrentContext()},

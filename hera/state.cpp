@@ -23,9 +23,7 @@
 #include <hera/render/text.hpp>
 #include <hera/event.hpp>
 
-using hera::render::Cube;
-
-using namespace hera::render;
+using hera::Cube;
 
 namespace hera {
 

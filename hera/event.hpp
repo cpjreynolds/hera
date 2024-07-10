@@ -22,74 +22,129 @@
 
 namespace hera {
 
-using thunk_key = array<uintptr_t, 2>;
+class observer;
 
 template<typename... Ts>
 struct thunk {
     using fn_type = void (*)(void*, Ts&&...);
 
-    void* instance;
-    fn_type thunktion;
+    static_assert(sizeof(uint128_t) == (sizeof(fn_type) + sizeof(void*)));
 
-    static constexpr thunk bind(const thunk_key& key)
-    {
-        return {reinterpret_cast<void*>(key[0]),
-                reinterpret_cast<fn_type>(key[1])};
-    }
+    union {
+        uint128_t key;
+        struct {
+#if defined(HERA_LITTLE_ENDIAN)
+            fn_type thunktion;
+            void* instance;
+#elif defined(HERA_BIG_ENDIAN)
+            void* instance;
+            fn_type thunktion;
+#else
+#error "undefined endianness"
+#endif
+        };
+    };
 
-    constexpr operator thunk_key() const
-    {
-        return {reinterpret_cast<uintptr_t>(instance),
-                reinterpret_cast<uintptr_t>(thunktion)};
-    }
+    constexpr thunk(fn_type thunktion, void* instance)
+#if defined(HERA_LITTLE_ENDIAN)
+        : thunktion{thunktion},
+          instance{instance} {};
+#elif defined(HERA_BIG_ENDIAN)
+        : instance{instance},
+          thunktion{thunktion} {};
+#endif
 
     template<auto fun_ptr>
         requires invocable<decltype(fun_ptr), Ts...>
     static constexpr thunk bind()
     {
-        return {nullptr, [](void*, Ts&&... args) {
-                    (*fun_ptr)(std::forward<Ts>(args)...);
-                }};
+        return {
+            [](void*, Ts&&... args) { (*fun_ptr)(std::forward<Ts>(args)...); },
+            nullptr};
     }
 
     template<auto mem_ptr, typename T>
         requires invocable<decltype(mem_ptr), T*, Ts...>
     static constexpr thunk bind(T* obj)
     {
-        return {obj, [](void* iptr, Ts&&... args) {
-                    (static_cast<T*>(iptr)->*mem_ptr)(
-                        std::forward<Ts>(args)...);
-                }};
+        if constexpr (std::derived_from<T, observer>) {
+            return {[](void* iptr, Ts&&... args) {
+                        auto i =
+                            static_cast<T*>(static_cast<T::observer*>(iptr));
+                        (i->*mem_ptr)(std::forward<Ts>(args)...);
+                    },
+                    static_cast<observer*>(obj)};
+        }
+        else {
+            return {[](void* iptr, Ts&&... args) {
+                        (static_cast<T*>(iptr)->*mem_ptr)(
+                            std::forward<Ts>(args)...);
+                    },
+                    obj};
+        }
     }
 
     template<auto mem_ptr, typename T>
         requires invocable<decltype(mem_ptr), const T*, Ts...>
     static constexpr thunk bind(const T* obj)
     {
-        return {(void*)obj, [](void* iptr, Ts&&... args) {
-                    (static_cast<const T*>(iptr)->*mem_ptr)(
-                        std::forward<Ts>(args)...);
-                }};
+        if constexpr (std::derived_from<T, observer>) {
+            return {[](void* iptr, Ts&&... args) {
+                        const auto i = static_cast<const T*>(
+                            static_cast<const T::observer*>(iptr));
+                        (i->*mem_ptr)(std::forward<Ts>(args)...);
+                    },
+                    const_cast<void*>(static_cast<const T::observer*>(obj))};
+        }
+        else {
+            return {[](void* iptr, Ts&&... args) {
+                        (static_cast<const T*>(iptr)->*mem_ptr)(
+                            std::forward<Ts>(args)...);
+                    },
+                    const_cast<void*>(obj)};
+        }
     }
 
     template<typename C>
         requires invocable<C, Ts...>
-    static constexpr thunk bind(C* callable)
+    static constexpr thunk bind(C* obj)
     {
-        return {callable, [](void* iptr, Ts&&... args) {
-                    static_cast<C*>(iptr)->operator()(
-                        std::forward<Ts>(args)...);
-                }};
+        if constexpr (std::derived_from<C, observer>) {
+            return {[](void* iptr, Ts&&... args) {
+                        auto i =
+                            static_cast<C*>(static_cast<C::observer*>(iptr));
+                        i->operator()(std::forward<Ts>(args)...);
+                    },
+                    obj};
+        }
+        else {
+            return {[](void* iptr, Ts&&... args) {
+                        static_cast<C*>(iptr)->operator()(
+                            std::forward<Ts>(args)...);
+                    },
+                    obj};
+        }
     }
 
     template<typename C>
         requires invocable<const C, Ts...>
-    static constexpr thunk bind(const C* callable)
+    static constexpr thunk bind(const C* obj)
     {
-        return {(void*)callable, [](void* iptr, Ts&&... args) {
-                    static_cast<const C*>(iptr)->operator()(
-                        std::forward<Ts>(args)...);
-                }};
+        if constexpr (std::derived_from<C, observer>) {
+            return {[](void* iptr, Ts&&... args) {
+                        const auto i = static_cast<const C*>(
+                            static_cast<const C::observer*>(iptr));
+                        i->operator()(std::forward<Ts>(args)...);
+                    },
+                    const_cast<void*>(static_cast<const C::observer*>(obj))};
+        }
+        else {
+            return {[](void* iptr, Ts&&... args) {
+                        static_cast<const C*>(iptr)->operator()(
+                            std::forward<Ts>(args)...);
+                    },
+                    const_cast<void*>(obj)};
+        }
     }
 
     template<typename... Args>
@@ -100,11 +155,11 @@ struct thunk {
 
     constexpr friend bool operator==(const thunk& lhs, const thunk& rhs)
     {
-        return static_cast<thunk_key>(lhs) == static_cast<thunk_key>(rhs);
+        return lhs.key == rhs.key;
     }
     constexpr friend auto operator<=>(const thunk& lhs, const thunk& rhs)
     {
-        return static_cast<thunk_key>(lhs) <=> static_cast<thunk_key>(rhs);
+        return lhs.key <=> rhs.key;
     }
 
     constexpr friend bool operator==(const thunk& lhs, const uintptr_t& rhs)
@@ -129,7 +184,7 @@ struct thunk {
 namespace detail {
 struct signal_block_base {
     virtual void do_disconnect(const void*) = 0;
-    // virtual ~signal_block_base() {}
+
 protected:
     ~signal_block_base() {}
 };
@@ -139,16 +194,15 @@ class observer {
     template<typename... Ts>
     friend class signal;
 
-    mutable vector<pair<weak_ptr<detail::signal_block_base>, const void*>>
-        deleters;
+    mutable vector<weak_ptr<detail::signal_block_base>> signals;
 
 protected:
     observer() {};
     ~observer()
     {
-        for (auto&& [wptr, obj] : deleters) {
+        for (auto&& wptr : signals) {
             if (auto ptr = wptr.lock()) {
-                ptr->do_disconnect(obj);
+                ptr->do_disconnect(this);
             }
         }
     }
@@ -170,7 +224,7 @@ public:
     template<typename... Args>
     void post(Args&&... args)
     {
-        block->evqueue.emplace_back(std::forward<Args>(args)...);
+        block->evqueue.emplace_back(static_cast<Ts&&>(args)...);
     }
 
     // flush the event queue to all slots.
@@ -195,7 +249,7 @@ public:
         block->do_connect(thunk<Ts...>::template bind<mem_ptr>(obj));
 
         if constexpr (std::derived_from<T, observer>) {
-            static_cast<observer*>(obj)->deleters.emplace_back(block, obj);
+            static_cast<observer*>(obj)->signals.emplace_back(block);
         }
     }
 
@@ -213,8 +267,7 @@ public:
         block->do_connect(thunk<Ts...>::template bind<mem_ptr>(obj));
 
         if constexpr (std::derived_from<T, observer>) {
-            static_cast<const observer*>(obj)->deleters.emplace_back(block,
-                                                                     obj);
+            static_cast<const observer*>(obj)->signals.emplace_back(block);
         }
     }
 
@@ -325,8 +378,7 @@ public:
     {
         block->do_connect(thunk<Ts...>::template bind<C>(callable));
         if constexpr (std::derived_from<C, observer>) {
-            static_cast<observer*>(callable)->deleters.emplace_back(block,
-                                                                    callable);
+            static_cast<observer*>(callable)->signals.emplace_back(block);
         }
     }
     // connects a const callable object.
@@ -336,8 +388,7 @@ public:
     {
         block->do_connect(thunk<Ts...>::template bind<C>(callable));
         if constexpr (std::derived_from<C, observer>) {
-            static_cast<const observer*>(callable)->deleters.emplace_back(
-                block, callable);
+            static_cast<const observer*>(callable)->signals.emplace_back(block);
         }
     }
 

@@ -20,7 +20,7 @@
 #include <hera/window.hpp>
 #include <hera/render/renderer.hpp>
 
-namespace hera::render {
+namespace hera {
 
 Renderer::Renderer(const Config& config)
     : _window{glfwGetCurrentContext()},
@@ -60,4 +60,4 @@ const gl::Pipeline& Renderer::pipeline(string_view name)
     return p;
 }
 
-} // namespace hera::render
+} // namespace hera
