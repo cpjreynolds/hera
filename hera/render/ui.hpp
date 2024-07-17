@@ -14,17 +14,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef HERA_RENDER_MATERIAL_HPP
-#define HERA_RENDER_MATERIAL_HPP
-
-#include <hera/image.hpp>
-#include <hera/gl/texture.hpp>
+#ifndef HERA_RENDER_UI_HPP
+#define HERA_RENDER_UI_HPP
 
 namespace hera {
 
-struct Material {
-    gl::Texture2d diff;
-    gl::Texture2d spec;
+class UIElement {
+    UIElement() = default;
+    virtual ~UIElement() {};
 };
 
 } // namespace hera

@@ -50,10 +50,9 @@ constexpr bind_query to_bind_query(buffer_t b)
     case copy_read:
     case copy_write:
     default:
-        assert(!"bad buffer query");
+        throw gl_error("bad buffer_t query");
     }
 }
-
 constexpr bind_query to_bind_query(texture_t t)
 {
     using enum texture_t;
@@ -80,7 +79,7 @@ constexpr bind_query to_bind_query(texture_t t)
     case buffer:
         return texture_buffer;
     default:
-        throw hera::runtime_error("bad texture_t");
+        throw gl_error("bad texture_t query");
     }
 };
 template<typename T>
@@ -90,16 +89,46 @@ inline T binding(bind_query query)
     glGetIntegerv(+query, &store);
     return static_cast<T>(store);
 }
-inline id::texture binding(texture_t tgt)
+} // namespace detail
+
+// returns the currently bound object.
+template<typename T>
+inline T current()
 {
-    return binding<id::texture>(to_bind_query(tgt));
+    using detail::binding;
+    using enum bind_query;
+    if constexpr (same_as<T, texture_u>) {
+        return binding<texture_u>(active_texture);
+    }
+    else if constexpr (same_as<T, id::varray>) {
+        return binding<id::varray>(vertex_array);
+    }
+    else if constexpr (same_as<T, id::pipeline>) {
+        return binding<id::pipeline>(pipeline);
+    }
+    else if constexpr (same_as<T, id::renderbuffer>) {
+        return binding<id::renderbuffer>(renderbuffer);
+    }
+    else {
+        static_assert(false, "bad current target type");
+    }
 }
-inline id::buffer binding(buffer_t tgt)
+// returns buffer bound to target.
+inline id::buffer current(buffer_t tgt)
 {
+    using namespace detail;
     return binding<id::buffer>(to_bind_query(tgt));
 }
-inline id::framebuffer binding(framebuffer_t tgt)
+// returns texture bound to target.
+inline id::texture current(texture_t tgt)
 {
+    using namespace detail;
+    return binding<id::texture>(to_bind_query(tgt));
+}
+// returns framebuffer bound to target.
+inline id::framebuffer current(framebuffer_t tgt)
+{
+    using detail::binding;
     using enum bind_query;
     switch (tgt) {
     case framebuffer_t::draw:
@@ -110,102 +139,142 @@ inline id::framebuffer binding(framebuffer_t tgt)
         throw gl_error("bad framebuffer_t");
     }
 }
-template<typename T, typename... Ts>
-consteval size_t arity(T (*)(Ts...))
+
+// unbinds the currently bound object type.
+template<typename T>
+inline void unbind()
 {
-    return sizeof...(Ts);
-};
-} // namespace detail
+    if constexpr (same_as<T, texture_u>) {
+        glActiveTexture(GL_TEXTURE0);
+    }
+    else if constexpr (same_as<T, id::varray>) {
+        glBindVertexArray(0);
+    }
+    else if constexpr (same_as<T, id::pipeline>) {
+        glBindProgramPipeline(0);
+    }
+    else if constexpr (same_as<T, id::framebuffer>) {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+    else if constexpr (same_as<T, id::renderbuffer>) {
+        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+    }
+    else {
+        static_assert(false, "bad unbind target type");
+    }
+}
+// unbinds the buffer target.
+inline void unbind(buffer_t tgt)
+{
+    glBindBuffer(+tgt, 0);
+}
+// unbinds the indexed buffer target.
+inline void unbind(buffer_t tgt, GLuint index)
+{
+    glBindBufferBase(+tgt, index, 0);
+}
+// unbinds the texture target.
+inline void unbind(texture_t tgt)
+{
+    glBindTexture(+tgt, 0);
+}
+// unbinds the framebuffer target.
+inline void unbind(framebuffer_t tgt)
+{
+    glBindFramebuffer(+tgt, 0);
+}
+
+// activates the texture unit.
+inline void bind(texture_u unit)
+{
+    glActiveTexture(+unit);
+}
+// binds the vertex array object.
+inline void bind(id::varray v)
+{
+    glBindVertexArray(v);
+}
+// binds the buffer object to the target.
+inline void bind(id::buffer buf, buffer_t tgt)
+{
+    glBindBuffer(+tgt, buf);
+}
+// binds the buffer object to the indexed target.
+inline void bind(id::buffer buf, buffer_t tgt, GLuint index)
+{
+    glBindBufferBase(+tgt, index, buf);
+}
+// binds a range within a buffer to the indexed target.
+inline void bind(id::buffer buf, buffer_t tgt, GLuint index, GLintptr offset,
+                 GLsizeiptr size)
+{
+    glBindBufferRange(+tgt, index, buf, offset, size);
+}
+// binds the texture object to the target.
+inline void bind(id::texture tex, texture_t tgt)
+{
+    glBindTexture(+tgt, tex);
+}
+// binds the pipeline object.
+inline void bind(id::pipeline pipe)
+{
+    glBindProgramPipeline(pipe);
+}
+// binds the framebuffer object to both read and write targets.
+inline void bind(id::framebuffer fb)
+{
+    glBindFramebuffer(GL_FRAMEBUFFER, fb);
+}
+// binds the framebuffer object to the target.
+inline void bind(id::framebuffer fb, framebuffer_t tgt)
+{
+    glBindFramebuffer(+tgt, fb);
+}
+// binds the renderbuffer object.
+inline void bind(id::renderbuffer rb)
+{
+    glBindRenderbuffer(GL_RENDERBUFFER, rb);
+}
 
 template<typename T>
-struct bind_point;
+struct object_traits;
 
 template<>
-struct bind_point<texture_u> {
-    static texture_u current()
-    {
-        return detail::binding<texture_u>(bind_query::active_texture);
-    }
-    static void bind(texture_u unit) { glActiveTexture(+unit); }
-    static void unbind() { glActiveTexture(GL_TEXTURE0); }
-    static constexpr string_view name = "texture unit";
-};
-
-template<>
-struct bind_point<id::varray> {
+struct object_traits<id::varray> {
     static void generate(int n, GLuint* dst) { glGenVertexArrays(n, dst); }
     static void destroy(int n, const GLuint* src)
     {
         glDeleteVertexArrays(n, src);
     }
-    static id::varray current()
-    {
-        return detail::binding<id::varray>(bind_query::vertex_array);
-    }
-    static void bind(id::varray v) { glBindVertexArray(v); }
-    static void unbind() { glBindVertexArray(0); }
     static constexpr string_view name = "vertex array";
 };
 
 template<>
-struct bind_point<id::buffer> {
-    using target_type = buffer_t;
+struct object_traits<id::buffer> {
     static void generate(int n, GLuint* dst) { glGenBuffers(n, dst); }
     static void destroy(int n, const GLuint* src) { glDeleteBuffers(n, src); }
-    static id::buffer current(target_type tgt) { return detail::binding(tgt); }
-    static void bind(id::buffer buf, target_type tgt)
-    {
-        glBindBuffer(+tgt, buf);
-    }
-    static void bind(id::buffer buf, target_type tgt, GLuint index)
-    {
-        glBindBufferBase(+tgt, index, buf);
-    }
-    static void bind(id::buffer buf, target_type tgt, GLuint index,
-                     GLintptr offset, GLsizeiptr size)
-    {
-        glBindBufferRange(+tgt, index, buf, offset, size);
-    }
-    static void unbind(target_type tgt) { glBindBuffer(+tgt, 0); }
-    static void unbind(target_type tgt, GLuint index)
-    {
-        glBindBufferBase(+tgt, index, 0);
-    }
     static constexpr string_view name = "buffer";
 };
 
 template<>
-struct bind_point<id::texture> {
-    using target_type = texture_t;
+struct object_traits<id::texture> {
     static void generate(int n, GLuint* dst) { glGenTextures(n, dst); }
     static void destroy(int n, const GLuint* src) { glDeleteTextures(n, src); }
-    static id::texture current(target_type tgt) { return detail::binding(tgt); }
-    static void bind(id::texture tex, target_type tgt)
-    {
-        glBindTexture(+tgt, tex);
-    }
-    static void unbind(target_type tgt) { glBindTexture(+tgt, 0); }
     static constexpr string_view name = "texture";
 };
 
 template<>
-struct bind_point<id::pipeline> {
+struct object_traits<id::pipeline> {
     static void generate(int n, GLuint* dst) { glGenProgramPipelines(n, dst); }
     static void destroy(int n, const GLuint* src)
     {
         glDeleteProgramPipelines(n, src);
     }
-    static id::pipeline current()
-    {
-        return detail::binding<id::pipeline>(bind_query::pipeline);
-    }
-    static void bind(id::pipeline pipe) { glBindProgramPipeline(pipe); }
-    static void unbind() { glBindProgramPipeline(0); }
     static constexpr string_view name = "pipeline";
 };
 
 template<>
-struct bind_point<id::program> {
+struct object_traits<id::program> {
     static void generate(int n, GLuint* dst)
     {
         std::generate_n(dst, n, glCreateProgram);
@@ -218,123 +287,34 @@ struct bind_point<id::program> {
 };
 
 template<>
-struct bind_point<id::framebuffer> {
-    using target_type = framebuffer_t;
+struct object_traits<id::framebuffer> {
     static void generate(int n, GLuint* dst) { glGenFramebuffers(n, dst); }
     static void destroy(int n, const GLuint* src)
     {
         glDeleteFramebuffers(n, src);
     }
-    static id::framebuffer current(target_type tgt)
-    {
-        return detail::binding(tgt);
-    }
-    static void bind(id::framebuffer fb)
-    {
-        glBindFramebuffer(GL_FRAMEBUFFER, fb);
-    }
-    static void bind(id::framebuffer fb, target_type tgt)
-    {
-        glBindFramebuffer(+tgt, fb);
-    }
-    static void unbind() { glBindFramebuffer(GL_FRAMEBUFFER, 0); }
-    static void unbind(target_type tgt) { glBindFramebuffer(+tgt, 0); }
-
     static constexpr string_view name = "framebuffer";
 };
 
 template<>
-struct bind_point<id::renderbuffer> {
+struct object_traits<id::renderbuffer> {
     static void generate(int n, GLuint* dst) { glGenRenderbuffers(n, dst); }
     static void destroy(int n, const GLuint* src)
     {
         glDeleteRenderbuffers(n, src);
     }
-    static void bind(id::renderbuffer rb)
-    {
-        glBindRenderbuffer(GL_RENDERBUFFER, rb);
-    }
-    static void unbind() { glBindRenderbuffer(GL_RENDERBUFFER, 0); }
     static constexpr string_view name = "renderbuffer";
-};
-
-template<typename T>
-struct bind_target;
-
-template<typename Tgt>
-using target_of = bind_target<Tgt>::point;
-
-template<>
-struct bind_target<buffer_t> {
-    using point = id::buffer;
-};
-
-template<>
-struct bind_target<texture_t> {
-    using point = id::texture;
-};
-
-template<>
-struct bind_target<framebuffer_t> {
-    using point = id::framebuffer;
 };
 
 // generic operations for all objects
 
 template<typename T>
-concept is_target = requires { bind_target<T>::point; };
-
-template<typename T>
 concept generatable =
-    requires(int n, GLuint* dst) { bind_point<T>::generate(n, dst); };
+    requires(int n, GLuint* dst) { object_traits<T>::generate(n, dst); };
 
 template<typename T>
 concept destroyable =
-    requires(int n, const GLuint* src) { bind_point<T>::destroy(n, src); };
-
-template<typename T, typename... Args>
-concept bindable =
-    requires(T t, Args... args) { bind_point<T>::bind(t, args...); };
-
-template<typename T, typename... Args>
-concept unbindable = requires(Args... args) { bind_point<T>::unbind(args...); };
-
-template<typename T, typename... Args>
-concept currentable =
-    requires(Args... args) { bind_point<T>::current(args...); };
-
-template<typename T, typename... Args>
-    requires bindable<T, Args...>
-void bind(T point, Args... args)
-{
-    bind_point<T>::bind(point, args...);
-}
-
-template<typename T>
-    requires unbindable<T>
-void unbind()
-{
-    bind_point<T>::unbind();
-}
-template<typename Tgt, typename... Args>
-    requires unbindable<target_of<Tgt>, Tgt, Args...>
-void unbind(Tgt tgt, Args... args)
-{
-    bind_point<target_of<Tgt>>::unbind(tgt, args...);
-}
-
-template<typename Tgt, typename... Args>
-    requires currentable<target_of<Tgt>, Tgt, Args...>
-target_of<Tgt> current(Tgt tgt, Args... args)
-{
-    return bind_point<target_of<Tgt>>::current(tgt, args...);
-}
-template<typename T>
-    requires currentable<T>
-T current()
-{
-    return bind_point<T>::current();
-}
+    requires(int n, const GLuint* src) { object_traits<T>::destroy(n, src); };
 
 template<spanner R, generatable T = range_v<R>>
 void generate(R& dest_r)
@@ -343,10 +323,10 @@ void generate(R& dest_r)
         reinterpret_cast<std::underlying_type_t<T>*>(ranges::data(dest_r));
     auto n = ranges::size(dest_r);
 
-    bind_point<T>::generate(n, dest);
+    object_traits<T>::generate(n, dest);
 
     string_view plural = (n > 1 ? "s" : "");
-    LOG_TRACE_L2("glGen {}{}: {}", bind_point<T>::name, plural,
+    LOG_TRACE_L2("glGen {}{}: {}", object_traits<T>::name, plural,
                  vector(dest, dest + n));
 }
 
@@ -363,10 +343,10 @@ void destroy(R& src_r)
         reinterpret_cast<std::underlying_type_t<T>*>(ranges::cdata(src_r));
     auto n = ranges::size(src_r);
 
-    bind_point<T>::destroy(n, src);
+    object_traits<T>::destroy(n, src);
 
     string_view plural = (n > 1 ? "s" : "");
-    LOG_TRACE_L2("glDel {}{}: {}", bind_point<T>::name, plural,
+    LOG_TRACE_L2("glDel {}{}: {}", object_traits<T>::name, plural,
                  vector(src, src + n));
 }
 
@@ -849,13 +829,82 @@ void uniform(id::program p, GLint loc, const U& v)
 }
 
 namespace detail {
+
 class refcount {
-    long* _ctr;
-    long inc() noexcept { return ++*_ctr; };
-    long dec() noexcept { return --*_ctr; };
+    static constexpr uint32_t sentinel = std::numeric_limits<uint32_t>::max();
+
+    inline static uint32_t free_head = sentinel;
+    inline static vector<uint32_t> rcs{};
+
+    uint32_t _idx;
+    uint32_t inc() noexcept { return ++rcs[_idx]; };
+    uint32_t dec() noexcept { return --rcs[_idx]; };
+
+    static uint32_t acquire()
+    {
+        if (free_head == sentinel) {
+            // no free space.
+            rcs.emplace_back(1);
+            return rcs.size() - 1;
+        }
+        else {
+            uint32_t rv = free_head;
+            free_head = rcs[free_head];
+            return rv;
+        }
+    }
+
+    static void release(uint32_t idx) noexcept
+    {
+        rcs[idx] = free_head;
+        free_head = idx;
+    }
 
 public:
-    explicit refcount(nullptr_t) : _ctr{nullptr} {};
+    explicit constexpr refcount(nullptr_t) noexcept : _idx{sentinel} {};
+    refcount() : _idx{acquire()} {};
+    refcount(const refcount& other) noexcept : _idx{other._idx}
+    {
+        if (_idx != sentinel)
+            inc();
+    };
+    refcount& operator=(const refcount& other) noexcept
+    {
+        refcount(other).swap(*this);
+        return *this;
+    }
+    refcount(refcount&& other) noexcept
+        : _idx{std::exchange(other._idx, sentinel)} {};
+    refcount& operator=(refcount&& other) noexcept
+    {
+        refcount(std::move(other)).swap(*this);
+        return *this;
+    }
+    uint32_t count() const noexcept
+    {
+        return _idx == sentinel ? sentinel : rcs[_idx];
+    }
+    bool unique() const noexcept { return count() == 1; }
+    void swap(refcount& other) noexcept { std::swap(_idx, other._idx); }
+    friend void swap(refcount& lhs, refcount& rhs) noexcept { lhs.swap(rhs); }
+    friend auto operator<=>(const refcount&,
+                            const refcount&) noexcept = default;
+    ~refcount()
+    {
+        if (_idx != sentinel && dec() == 0) {
+            release(_idx);
+        }
+    }
+};
+
+/*
+class refcount {
+    long* _ctr;
+    long inc() noexcept { return ++*_ctr; }
+    long dec() noexcept { return --*_ctr; }
+
+public:
+    explicit constexpr refcount(nullptr_t) noexcept : _ctr{nullptr} {};
     refcount() : _ctr{new long{0}} {};
     refcount(const refcount& other) noexcept : _ctr{other._ctr}
     {
@@ -874,17 +923,20 @@ public:
         refcount(std::move(other)).swap(*this);
         return *this;
     }
-    long count() const noexcept { return _ctr ? *_ctr : -1; };
+    long count() const noexcept { return _ctr == nullptr ? -1 : *_ctr; }
+    bool unique() const noexcept { return count() == 0; }
     void swap(refcount& other) noexcept { std::swap(_ctr, other._ctr); }
     friend void swap(refcount& lhs, refcount& rhs) noexcept { lhs.swap(rhs); }
-    friend std::strong_ordering operator<=>(const refcount&,
-                                            const refcount&) noexcept = default;
+    friend auto operator<=>(const refcount&,
+                            const refcount&) noexcept = default;
     ~refcount()
     {
-        if (_ctr && dec() == -1)
+        if (_ctr && dec() == -1) {
             delete _ctr;
+        }
     }
 };
+*/
 
 template<id::id T, id::id auto... Ns>
 struct type_offset;
@@ -1040,7 +1092,7 @@ public:
 
     ~object()
     {
-        if (rc.count() == 0)
+        if (rc.unique())
             destroy();
     }
 
