@@ -45,27 +45,28 @@ static constexpr uint16_t basic_quad_indices[] = {0, 1, 3, 1, 2, 3};
 } // namespace
 
 class Geometry {
-protected:
-    gl::VertexBuffer _vbuf;
+private:
     mat4 _model{1.0f};
     mat4 _prev_model{1.0f};
 
+protected:
+    gl::VertexBuffer _vbuf;
+
     Geometry() = default;
-    Geometry(const gl::VertexBuffer& vbuf) : _vbuf{vbuf} {};
+    Geometry(const gl::VertexBuffer& vbuf) : _vbuf{vbuf} {}
 
 public:
     virtual ~Geometry() {};
 
-    virtual void draw(const gl::Pipeline& shader, float alpha) const = 0;
+    virtual void draw(const gl::Pipeline& shader, float alpha) const;
 
-    mat4& model() { return _model; }
     const mat4& model() const { return _model; }
-    mat4& model(const mat4& nm)
+    void model(const mat4& model)
     {
-        _prev_model = std::exchange(_model, nm);
-        return _model;
+        _prev_model = std::exchange(_model, model);
     }
 
+private:
     mat4 interpolate(float alpha) const
     {
         return glm::interpolate(_prev_model, _model, alpha);

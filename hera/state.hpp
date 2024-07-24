@@ -51,8 +51,6 @@ struct State : observer {
     float cube_angle = 0;
 
     // render data
-    vector<float> offsets;
-    vector<vec3> rotaxes;
     vector<Cube> cubes;
     vector<vec3> cube_pos;
 

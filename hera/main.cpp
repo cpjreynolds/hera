@@ -43,8 +43,6 @@ try
     init::gl();
     init::input();
 
-    // hera::foo();
-
     State state;
     state.run();
 

@@ -73,9 +73,25 @@ static constexpr cube_vertex vertices[] = {
 template<>
 struct gl::vertex<cube_vertex> : attributes<vec3, vec3, vec2> {};
 
-Cube::Cube(const path& texpath, const path& specpath)
+Cube::Cube(const path& diff, const path& spec, const vec3& pos,
+           const vec3& axis, float offset)
     : Geometry{vertices},
-      tex{texpath, 0, {.min_filter = GL_LINEAR_MIPMAP_LINEAR}},
-      spec{specpath, 0, {.min_filter = GL_LINEAR_MIPMAP_LINEAR}} {};
+      diffuse{diff, 0, {.min_filter = GL_LINEAR_MIPMAP_LINEAR}},
+      specular{spec, 0, {.min_filter = GL_LINEAR_MIPMAP_LINEAR}},
+      _pos{pos},
+      _axis{axis},
+      _angle{0},
+      _offset{offset} {};
+
+void Cube::draw(const gl::Pipeline& shader, float alpha) const
+{
+    shader.uniform("a_texture", 0);
+    shader.uniform("spec_map", 1);
+
+    diffuse.bind(0);
+    specular.bind(1);
+
+    Geometry::draw(shader, alpha);
+}
 
 } // namespace hera

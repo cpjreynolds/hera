@@ -27,12 +27,14 @@ using hera::Cube;
 
 namespace hera {
 
+/*
 namespace {
 constexpr pair<float, float> circle(float angle, float radius)
 {
     return {radius * sin(angle), radius * cos(angle)};
 }
 } // namespace
+*/
 
 void State::run()
 {
@@ -60,21 +62,8 @@ void State::loop()
 void State::do_update()
 {
     camera.update();
-    float tau = numbers::pi * 2.0;
-    float angle_inc = tau * cam_rotrate * tickrate();
-    angle += angle_inc;
-    angle = fmod(angle, tau);
-    std::tie(camx, camz) = circle(angle, radius);
-
-    float cube_inc = tau * cube_rotrate * tickrate();
-    cube_angle += cube_inc;
-    cube_angle = fmod(cube_angle, tau);
-    for (auto&& [cube, pos, off, ax] :
-         std::views::zip(cubes, cube_pos, offsets, rotaxes)) {
-        mat4 model = glm::translate(mat4{1.0}, pos);
-
-        model = glm::rotate(model, sin(cube_angle + off), ax);
-        cube.model(model);
+    for (auto& cube : cubes) {
+        cube.update();
     }
 }
 
@@ -83,8 +72,9 @@ void State::do_render()
     for (auto&& frame : renderer) {
         auto&& p = frame.pipeline("scene");
         light.load_into(p);
+        const float delta = ticker.delta();
         for (const auto& cube : cubes) {
-            frame.draw(cube, ticker.delta());
+            frame.draw(cube, delta);
             gl::checkerror();
         }
         frame.pipeline("lamp");
@@ -138,10 +128,13 @@ void State::prologue()
          glm::vec3(1.5f, 2.0f, -2.5f), glm::vec3(1.5f, 0.2f, -1.5f),
          glm::vec3(-1.3f, 1.0f, -1.5f)});
 
-    ranges::generate_n(back_inserter(offsets), cube_pos.size(), randoff);
-    ranges::generate_n(back_inserter(rotaxes), cube_pos.size(), randvec3);
-
-    std::fill_n(back_inserter(cubes), cube_pos.size(), mastercube);
+    for (const auto& pos : cube_pos) {
+        auto cube = mastercube;
+        cube.position(pos);
+        cube.axis(randvec3());
+        cube.offset(randoff());
+        cubes.push_back(std::move(cube));
+    }
 
     do_input();
     gl::checkerror();
