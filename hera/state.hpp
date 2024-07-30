@@ -28,7 +28,7 @@
 
 namespace hera {
 
-struct State : observer {
+struct State : Observer {
     GLFWwindow* window;
     Config config;
     Renderer renderer;
@@ -64,7 +64,7 @@ struct State : observer {
     {
         gl::checkerror();
         camera.load_into(renderer.shaders);
-        raw_input::actions.connect<&State::on_action>(this);
+        input::actions.connect<&State::on_action>(this);
     };
 
     void on_action(input_action);

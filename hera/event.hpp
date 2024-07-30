@@ -22,7 +22,7 @@
 
 namespace hera {
 
-class observer;
+class Observer;
 
 template<typename... Ts>
 struct thunk {
@@ -67,13 +67,13 @@ struct thunk {
         requires invocable<decltype(mem_ptr), T*, Ts...>
     static constexpr thunk bind(T* obj)
     {
-        if constexpr (std::derived_from<T, observer>) {
+        if constexpr (std::derived_from<T, Observer>) {
             return {[](void* iptr, Ts&&... args) {
                         auto i =
-                            static_cast<T*>(static_cast<T::observer*>(iptr));
+                            static_cast<T*>(static_cast<T::Observer*>(iptr));
                         (i->*mem_ptr)(std::forward<Ts>(args)...);
                     },
-                    static_cast<observer*>(obj)};
+                    static_cast<Observer*>(obj)};
         }
         else {
             return {[](void* iptr, Ts&&... args) {
@@ -88,13 +88,13 @@ struct thunk {
         requires invocable<decltype(mem_ptr), const T*, Ts...>
     static constexpr thunk bind(const T* obj)
     {
-        if constexpr (std::derived_from<T, observer>) {
+        if constexpr (std::derived_from<T, Observer>) {
             return {[](void* iptr, Ts&&... args) {
                         const auto i = static_cast<const T*>(
-                            static_cast<const T::observer*>(iptr));
+                            static_cast<const T::Observer*>(iptr));
                         (i->*mem_ptr)(std::forward<Ts>(args)...);
                     },
-                    const_cast<void*>(static_cast<const T::observer*>(obj))};
+                    const_cast<void*>(static_cast<const T::Observer*>(obj))};
         }
         else {
             return {[](void* iptr, Ts&&... args) {
@@ -109,10 +109,10 @@ struct thunk {
         requires invocable<C, Ts...>
     static constexpr thunk bind(C* obj)
     {
-        if constexpr (std::derived_from<C, observer>) {
+        if constexpr (std::derived_from<C, Observer>) {
             return {[](void* iptr, Ts&&... args) {
                         auto i =
-                            static_cast<C*>(static_cast<C::observer*>(iptr));
+                            static_cast<C*>(static_cast<C::Observer*>(iptr));
                         i->operator()(std::forward<Ts>(args)...);
                     },
                     obj};
@@ -130,13 +130,13 @@ struct thunk {
         requires invocable<const C, Ts...>
     static constexpr thunk bind(const C* obj)
     {
-        if constexpr (std::derived_from<C, observer>) {
+        if constexpr (std::derived_from<C, Observer>) {
             return {[](void* iptr, Ts&&... args) {
                         const auto i = static_cast<const C*>(
-                            static_cast<const C::observer*>(iptr));
+                            static_cast<const C::Observer*>(iptr));
                         i->operator()(std::forward<Ts>(args)...);
                     },
-                    const_cast<void*>(static_cast<const C::observer*>(obj))};
+                    const_cast<void*>(static_cast<const C::Observer*>(obj))};
         }
         else {
             return {[](void* iptr, Ts&&... args) {
@@ -183,6 +183,8 @@ struct thunk {
 
 namespace detail {
 struct signal_block_base {
+    virtual void move_to(const void* from, void* to) = 0;
+    virtual void copy_to(const void* from, void* to) = 0;
     virtual void do_disconnect(const void*) = 0;
 
 protected:
@@ -190,15 +192,15 @@ protected:
 };
 }; // namespace detail
 
-class observer {
+class Observer {
     template<typename... Ts>
     friend class signal;
 
     mutable vector<weak_ptr<detail::signal_block_base>> signals;
 
 protected:
-    observer() {};
-    ~observer()
+    Observer() {};
+    ~Observer()
     {
         for (auto&& wptr : signals) {
             if (auto ptr = wptr.lock()) {
@@ -206,6 +208,36 @@ protected:
             }
         }
     }
+
+    Observer(const Observer& other) : signals{other.signals}
+    {
+        for (auto&& wptr : signals) {
+            if (auto ptr = wptr.lock()) {
+                ptr->copy_to(&other, this);
+            }
+        }
+    }
+    Observer& operator=(const Observer& other)
+    {
+        signals = other.signals;
+        return *this;
+    }
+
+    Observer(Observer&& other) : signals{std::move(other.signals)}
+    {
+        for (auto&& wptr : signals) {
+            if (auto ptr = wptr.lock()) {
+                ptr->move_to(&other, this);
+            }
+        }
+    }
+    Observer& operator=(Observer&& other)
+    {
+        Observer(std::move(other)).swap(*this);
+        return *this;
+    }
+
+    void swap(Observer& other) { signals.swap(other.signals); }
 };
 
 template<typename... Ts>
@@ -248,8 +280,8 @@ public:
     {
         block->do_connect(thunk<Ts...>::template bind<mem_ptr>(obj));
 
-        if constexpr (std::derived_from<T, observer>) {
-            static_cast<observer*>(obj)->signals.emplace_back(block);
+        if constexpr (std::derived_from<T, Observer>) {
+            static_cast<Observer*>(obj)->signals.emplace_back(block);
         }
     }
 
@@ -266,8 +298,8 @@ public:
     {
         block->do_connect(thunk<Ts...>::template bind<mem_ptr>(obj));
 
-        if constexpr (std::derived_from<T, observer>) {
-            static_cast<const observer*>(obj)->signals.emplace_back(block);
+        if constexpr (std::derived_from<T, Observer>) {
+            static_cast<const Observer*>(obj)->signals.emplace_back(block);
         }
     }
 
@@ -377,8 +409,8 @@ public:
     void connect(C* callable)
     {
         block->do_connect(thunk<Ts...>::template bind<C>(callable));
-        if constexpr (std::derived_from<C, observer>) {
-            static_cast<observer*>(callable)->signals.emplace_back(block);
+        if constexpr (std::derived_from<C, Observer>) {
+            static_cast<Observer*>(callable)->signals.emplace_back(block);
         }
     }
     // connects a const callable object.
@@ -387,8 +419,8 @@ public:
     void connect(const C* callable)
     {
         block->do_connect(thunk<Ts...>::template bind<C>(callable));
-        if constexpr (std::derived_from<C, observer>) {
-            static_cast<const observer*>(callable)->signals.emplace_back(block);
+        if constexpr (std::derived_from<C, Observer>) {
+            static_cast<const Observer*>(callable)->signals.emplace_back(block);
         }
     }
 
@@ -545,6 +577,23 @@ private:
         {
             auto [b, e] = ranges::equal_range(slots, tk);
             slots.erase(b, e);
+        }
+
+        void move_to(const void* from, void* to) override
+        {
+            auto iter = ranges::equal_range(slots, from, std::less{});
+            for (auto& slot : iter) {
+                slot.instance = to;
+            }
+        }
+
+        void copy_to(const void* from, void* to) override
+        {
+            auto iter = ranges::equal_range(slots, from, std::less{});
+            for (auto slot : iter) {
+                slot.instance = to;
+                do_connect(slot);
+            }
         }
     };
 

@@ -39,7 +39,7 @@ constexpr pair<float, float> circle(float angle, float radius)
 void State::run()
 {
     prologue();
-    while (!raw_input::should_close()) {
+    while (!input::should_close()) {
         preamble();
         loop();
         postamble();
@@ -87,8 +87,8 @@ void State::do_render()
 
 void State::do_input()
 {
-    raw_input::poll();
-    raw_input::flush();
+    input::poll();
+    input::flush();
 }
 
 void State::on_action(input_action act)
@@ -96,7 +96,7 @@ void State::on_action(input_action act)
     using action = input_action::value;
     switch (act) {
     case action::escape:
-        raw_input::should_close(true);
+        input::should_close(true);
         break;
     default:
         break;

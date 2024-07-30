@@ -444,9 +444,10 @@ public:
     }
 };
 
-struct raw_input {
+struct input {
     static signal<key_event> keys;
     static signal<input_action> actions;
+    // {cursor delta, cursor position}
     static signal<vec2, vec2> cursor;
     static signal<vec2> scroll;
     static signal<ivec2> fbsize;
@@ -460,7 +461,7 @@ struct raw_input {
         cursor_disabled = GLFW_CURSOR_DISABLED,
     };
 
-    raw_input() = delete;
+    input() = delete;
     static void init();
 
     // poll the system for events
@@ -485,10 +486,73 @@ struct raw_input {
     // content scale (x, y)
     static vec2 content_scale();
 
-    // maps GLFW virtual coords to (0, 1)
-    static const vec2& virtualmap();
-    // maps pixel coords to (0, 1)
-    static const vec2& pixelmap();
+    // NDC to pixel (framebuffer) coordinates.
+    static constexpr vec2 ndc2pixel(const vec2& v)
+    {
+        vec2 rv = _ndc2pix * vec3{v, 1.0};
+        return rv;
+    }
+    // NDC to virtual coordinates.
+    static constexpr vec2 ndc2virtual(const vec2& v)
+    {
+        vec2 rv = _ndc2virt * vec3{v, 1.0};
+        return rv;
+    }
+    // NDC to normalized screen space.
+    static constexpr vec2 ndc2nss(const vec2& v)
+    {
+        vec2 rv = _ndc2nss * vec3{v, 1.0};
+        return rv;
+    }
+
+    // pixel space to NDC.
+    static constexpr vec2 pixel2ndc(const vec2& v)
+    {
+        vec2 rv = _pix2ndc * vec3{v, 1.0};
+        return rv;
+    }
+    static constexpr vec2 pixel2virtual(const vec2& v)
+    {
+        vec2 rv = v / _cscale;
+        return rv;
+    }
+    static constexpr vec2 pixel2nss(const vec2& v)
+    {
+        vec2 rv = v / vec2{_fbsize};
+        return rv;
+    }
+
+    static constexpr vec2 virtual2ndc(const vec2& v)
+    {
+        vec2 rv = _virt2ndc * vec3{v, 1.0};
+        return rv;
+    }
+    static constexpr vec2 virtual2pixel(const vec2& v)
+    {
+        vec2 rv = v * _cscale;
+        return rv;
+    }
+    static constexpr vec2 virtual2nss(const vec2& v)
+    {
+        vec2 rv = v / vec2{_winsize};
+        return rv;
+    }
+
+    static constexpr vec2 nss2ndc(const vec2& v)
+    {
+        vec2 rv = _nss2ndc * vec3{v, 1.0};
+        return rv;
+    }
+    static constexpr vec2 nss2pixel(const vec2& v)
+    {
+        vec2 rv = v * vec2{_fbsize};
+        return rv;
+    }
+    static constexpr vec2 nss2virtual(const vec2& v)
+    {
+        vec2 rv = v * vec2{_winsize};
+        return rv;
+    }
 
     // DPI based on primary monitor size and WINDOW content scale.
     static uvec2 dpi();
@@ -514,7 +578,7 @@ private:
     static GLFWwindow* window;
     static GLFWmonitor* monitor;
 
-    // (x, y, 1)
+    // (x, y)
     static vec2 _cursor_pos;
 
     static constexpr cmode _capture_mode = cursor_disabled;
@@ -522,9 +586,9 @@ private:
 
     static bool _capturing;
 
-    // cached winsize
+    // cached winsize (virtual)
     static ivec2 _winsize;
-    // cached fbsize
+    // cached fbsize (pixels)
     static ivec2 _fbsize;
     // cached content scale
     static vec2 _cscale;
@@ -532,22 +596,53 @@ private:
     // (primary) monitor physical dimensions
     static ivec2 _monitor_mm;
 
-    // maps pixel coords to (0, 1)
-    static vec2 _pixelmap;
-    // maps virtual coords to (0, 1)
-    static vec2 _virtualmap;
-    // maps (0, 1) to pixels
-    static vec2 _pixelmap_inv;
-    // maps (0, 1) to virtual coords
-    static vec2 _virtualmap_inv;
-
-    static mat3 _pix2ndc;
     static mat3 _virt2ndc;
-    static mat3 _ndc2pix;
-    static mat3 _ndc2virt;
+    static mat3 _pix2ndc;
+    static mat3 _nss2ndc;
 
-    static mat3 make_ortho2d(float w, float h);
-    static mat3 make_ortho2d_inv(float w, float h);
+    static mat3 _ndc2virt;
+    static mat3 _ndc2pix;
+    static mat3 _ndc2nss;
+
+    static inline void make_maps()
+    {
+        make_pixel_maps();
+        make_virtual_maps();
+        _nss2ndc = make_ortho2d({1.f, 1.f});
+        _ndc2nss = make_ortho2d_inv({1.f, 1.f});
+    }
+
+    static inline void make_pixel_maps()
+    {
+        _pix2ndc = make_ortho2d(_fbsize);
+        _ndc2pix = make_ortho2d_inv(_fbsize);
+    }
+
+    static inline void make_virtual_maps()
+    {
+        _virt2ndc = make_ortho2d(_winsize);
+        _ndc2virt = make_ortho2d_inv(_winsize);
+    }
+
+    static constexpr mat3 make_ortho2d(const vec2& dims)
+    {
+        mat3 m;
+        m[0][0] = 2.f / dims.x;
+        m[1][1] = 2.f / dims.y;
+        m[2][0] = -1;
+        m[2][1] = -1;
+        return m;
+    }
+
+    static constexpr mat3 make_ortho2d_inv(const vec2& dims)
+    {
+        mat3 m;
+        m[0][0] = dims.x / 2.f;
+        m[1][1] = dims.y / 2.f;
+        m[2][0] = dims.x / 2.f;
+        m[2][1] = dims.y / 2.f;
+        return m;
+    }
 
     // DPI
     static uvec2 _dpi;

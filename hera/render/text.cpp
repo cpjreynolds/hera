@@ -57,7 +57,7 @@ struct Face {
     // set char size in 1/64 points.
     void char_size(FT_F26Dot6 w, FT_F26Dot6 h) const
     {
-        auto dpi = raw_input::dpi();
+        auto dpi = input::dpi();
         fterr(FT_Set_Char_Size(_face.get(), w, h, dpi.x, dpi.y));
     }
     // set char size in physical pixels.
@@ -72,7 +72,7 @@ struct Face {
     void request_size(FT_F26Dot6 w, FT_F26Dot6 h, FT_Size_Request_Type ty) const
     {
         FT_Size_RequestRec req;
-        auto dpi = raw_input::dpi();
+        auto dpi = input::dpi();
         req.horiResolution = dpi.y;
         req.vertResolution = dpi.x;
         req.type = ty;

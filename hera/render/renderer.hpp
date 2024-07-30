@@ -32,7 +32,7 @@ template<typename T>
 concept drawable =
     requires(T& obj, const gl::Pipeline& s, float a) { obj.draw(s, a); };
 
-class Renderer : observer {
+class Renderer : Observer {
     GLFWwindow* _window;
 
 public:

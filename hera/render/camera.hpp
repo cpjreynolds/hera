@@ -24,7 +24,7 @@
 
 namespace hera {
 
-class Camera : public observer {
+class Camera : public Observer {
     // view, projection, ortho_proj, view_pos
     gl::UniformBuffer<mat4, mat4, mat4, vec3> matblock;
 
@@ -52,7 +52,7 @@ class Camera : public observer {
     ivec3 _trans_state{0, 0, 0};
     float _roll_state = 0;
 
-    vec2 _fbsize = raw_input::framebuffer_size();
+    vec2 _fbsize = input::framebuffer_size();
     bool _proj_dirty = true;
     bool _ortho_dirty = true;
 
@@ -63,10 +63,10 @@ class Camera : public observer {
 public:
     Camera() : matblock{"Matrices"}
     {
-        raw_input::actions.connect<&Camera::on_action>(this);
-        raw_input::cursor.connect<&Camera::on_cursor>(this);
-        raw_input::scroll.connect<&Camera::on_scroll>(this);
-        raw_input::fbsize.connect<&Camera::on_fbsize>(this);
+        input::actions.connect<&Camera::on_action>(this);
+        input::cursor.connect<&Camera::on_cursor>(this);
+        input::scroll.connect<&Camera::on_scroll>(this);
+        input::fbsize.connect<&Camera::on_fbsize>(this);
     };
 
     void update();

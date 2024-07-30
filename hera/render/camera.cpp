@@ -50,7 +50,7 @@ void Camera::on_action(input_action act)
         break;
     case action::toggle_mode:
         if (act.down())
-            raw_input::toggle_cursor();
+            input::toggle_cursor();
         break;
     default:
         break;

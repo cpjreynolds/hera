@@ -61,7 +61,7 @@ void init::input()
     init_scancode_map();
     init_string_key_map();
     input_atlas::init();
-    raw_input::init();
+    input::init();
     LOG_DEBUG("init input done");
 }
 
@@ -285,37 +285,40 @@ toml::table& key_event::insert_into(toml::table& table) const
     return table;
 }
 
-GLFWwindow* raw_input::window = nullptr;
-GLFWmonitor* raw_input::monitor = nullptr;
+GLFWwindow* input::window = nullptr;
+GLFWmonitor* input::monitor = nullptr;
 
-signal<key_event> raw_input::keys{};
-signal<input_action> raw_input::actions{};
-signal<vec2, vec2> raw_input::cursor{};
-signal<vec2> raw_input::scroll{};
-signal<ivec2> raw_input::fbsize{};
-signal<ivec2> raw_input::winsize{};
-signal<vec2> raw_input::cscale{};
+signal<key_event> input::keys{};
+signal<input_action> input::actions{};
+signal<vec2, vec2> input::cursor{};
+signal<vec2> input::scroll{};
+signal<ivec2> input::fbsize{};
+signal<ivec2> input::winsize{};
+signal<vec2> input::cscale{};
 
-vec2 raw_input::_cursor_pos = {0, 0};
+vec2 input::_cursor_pos = {0, 0};
 
-bool raw_input::_capturing = false;
-raw_input::cmode raw_input::_cursor_mode = cursor_normal;
+bool input::_capturing = false;
+input::cmode input::_cursor_mode = cursor_normal;
 
-ivec2 raw_input::_winsize = {0, 0};
-ivec2 raw_input::_fbsize = {0, 0};
-vec2 raw_input::_cscale = {0, 0};
+ivec2 input::_winsize = {0, 0};
+ivec2 input::_fbsize = {0, 0};
+vec2 input::_cscale = {0, 0};
 
-uvec2 raw_input::_dpi = {0, 0};
-ivec2 raw_input::_monitor_mm = {0, 0};
+uvec2 input::_dpi = {0, 0};
+ivec2 input::_monitor_mm = {0, 0};
 
-vec2 raw_input::_pixelmap = {1.0, 1.0};
-vec2 raw_input::_pixelmap_inv = {1.0, 1.0};
-vec2 raw_input::_virtualmap = {1.0, 1.0};
-vec2 raw_input::_virtualmap_inv = {1.0, 1.0};
+mat3 input::_virt2ndc{};
+mat3 input::_pix2ndc{};
+mat3 input::_nss2ndc{};
 
-uint8_t raw_input::modstate[key_event::scan_max + 1];
+mat3 input::_ndc2virt{};
+mat3 input::_ndc2pix{};
+mat3 input::_ndc2nss{};
 
-void raw_input::init()
+uint8_t input::modstate[key_event::scan_max + 1];
+
+void input::init()
 {
     window = glfwGetCurrentContext();
     monitor = glfwGetPrimaryMonitor();
@@ -326,11 +329,7 @@ void raw_input::init()
     glfwGetFramebufferSize(window, &_fbsize.x, &_fbsize.y);
     glfwGetWindowContentScale(window, &_cscale.x, &_cscale.y);
 
-    _pixelmap_inv = vec2{_fbsize};
-    _pixelmap = vec2{1.0} / _pixelmap_inv;
-
-    _virtualmap_inv = vec2{_winsize};
-    _virtualmap = vec2{1.0} / _virtualmap_inv;
+    make_maps();
 
     window_scale_cb(window, _cscale.x, _cscale.y);
 
@@ -351,7 +350,7 @@ void raw_input::init()
     capture_cursor();
 }
 
-void raw_input::flush()
+void input::flush()
 {
     keys.flush();
     actions.flush();
@@ -362,71 +361,71 @@ void raw_input::flush()
     cscale.flush();
 }
 
-vec2 raw_input::cursor_pos()
+vec2 input::cursor_pos()
 {
     return _cursor_pos;
 }
 
-vec2 raw_input::get_cursor()
+vec2 input::get_cursor()
 {
     double cx, cy;
     glfwGetCursorPos(window, &cx, &cy);
-    return _virtualmap * vec2{cx, cy};
+    return virtual2nss({cx, cy});
 }
 
-void raw_input::set_cursor(vec2 pos)
+void input::set_cursor(vec2 pos)
 {
-    vec2 virt = _virtualmap_inv * pos;
+    vec2 virt = nss2virtual(pos);
     glfwSetCursorPos(window, virt.x, virt.y);
 }
 
-ivec2 raw_input::framebuffer_size()
+ivec2 input::framebuffer_size()
 {
     return _fbsize;
 }
 
-ivec2 raw_input::window_size()
+ivec2 input::window_size()
 {
     return _winsize;
 }
 
-vec2 raw_input::content_scale()
+vec2 input::content_scale()
 {
     return _cscale;
 }
 
-uvec2 raw_input::dpi()
+uvec2 input::dpi()
 {
     return _dpi;
 }
 
-int raw_input::refresh_rate()
+int input::refresh_rate()
 {
     auto mode = glfwGetVideoMode(monitor);
     return mode->refreshRate;
 }
 
-bool raw_input::should_close()
+bool input::should_close()
 {
     return glfwWindowShouldClose(window);
 }
 
-void raw_input::should_close(bool v)
+void input::should_close(bool v)
 {
     glfwSetWindowShouldClose(window, v);
 }
 
-bool raw_input::has_focus()
+bool input::has_focus()
 {
     return glfwGetWindowAttrib(window, GLFW_FOCUSED);
 }
 
-bool raw_input::has_hover()
+bool input::has_hover()
 {
     return glfwGetWindowAttrib(window, GLFW_HOVERED);
 }
 
-void raw_input::toggle_cursor()
+void input::toggle_cursor()
 {
     if (_cursor_mode == _capture_mode) {
         _cursor_mode = cursor_normal;
@@ -440,20 +439,20 @@ void raw_input::toggle_cursor()
     }
 }
 
-void raw_input::capture_cursor()
+void input::capture_cursor()
 {
     glfwSetInputMode(window, GLFW_CURSOR, _cursor_mode);
     _cursor_pos = get_cursor();
     _capturing = true;
 }
 
-void raw_input::release_cursor()
+void input::release_cursor()
 {
     glfwSetInputMode(window, GLFW_CURSOR, cursor_normal);
     _capturing = false;
 }
 
-void raw_input::window_focus_cb(GLFWwindow*, int focused)
+void input::window_focus_cb(GLFWwindow*, int focused)
 {
     if (focused) {
         LOG_DEBUG("window gained focus");
@@ -466,7 +465,7 @@ void raw_input::window_focus_cb(GLFWwindow*, int focused)
     }
 }
 
-void raw_input::cursor_enter_cb(GLFWwindow*, int entered)
+void input::cursor_enter_cb(GLFWwindow*, int entered)
 {
     if (entered) {
         LOG_DEBUG("have cursor");
@@ -478,24 +477,24 @@ void raw_input::cursor_enter_cb(GLFWwindow*, int entered)
     }
 }
 
-void raw_input::cursor_pos_cb(GLFWwindow*, double xpos, double ypos)
+void input::cursor_pos_cb(GLFWwindow*, double xpos, double ypos)
 {
     if (!_capturing)
         return;
 
-    vec2 pos = _virtualmap * vec2{xpos, ypos};
+    vec2 pos = virtual2nss({xpos, ypos});
 
     cursor.post(_cursor_pos - pos, pos);
     _cursor_pos = pos;
 }
 
-void raw_input::scroll_cb(GLFWwindow*, double xoffset, double yoffset)
+void input::scroll_cb(GLFWwindow*, double xoffset, double yoffset)
 {
     scroll.post(vec2{xoffset, yoffset});
 }
 
-void raw_input::key_input_cb(GLFWwindow*, int key, int _scancode, int action,
-                             int mods)
+void input::key_input_cb(GLFWwindow*, int key, int _scancode, int action,
+                         int mods)
 {
     using enum keycode_t;
     using enum modifier_t;
@@ -537,7 +536,7 @@ void raw_input::key_input_cb(GLFWwindow*, int key, int _scancode, int action,
     }
 }
 
-void raw_input::mouse_btn_cb(GLFWwindow*, int btn, int action, int mods)
+void input::mouse_btn_cb(GLFWwindow*, int btn, int action, int mods)
 {
     if (action == GLFW_REPEAT) {
         return;
@@ -559,24 +558,22 @@ void raw_input::mouse_btn_cb(GLFWwindow*, int btn, int action, int mods)
     }
 }
 
-void raw_input::window_size_cb(GLFWwindow*, int w, int h)
+void input::window_size_cb(GLFWwindow*, int w, int h)
 {
     _winsize = {w, h};
-    _virtualmap_inv = vec2{w, h};
-    _virtualmap = vec2{1.0} / _virtualmap_inv;
+    make_virtual_maps();
     winsize.post(_winsize);
 }
 
-void raw_input::fb_size_cb(GLFWwindow*, int w, int h)
+void input::fb_size_cb(GLFWwindow*, int w, int h)
 {
     glViewport(0, 0, w, h);
     _fbsize = {w, h};
-    _pixelmap_inv = vec2{w, h};
-    _pixelmap = vec2{1.0} / _pixelmap_inv;
+    make_pixel_maps();
     fbsize.post(_fbsize);
 }
 
-void raw_input::window_scale_cb(GLFWwindow*, float x, float y)
+void input::window_scale_cb(GLFWwindow*, float x, float y)
 {
     _cscale = {x, y};
     auto mode = glfwGetVideoMode(monitor);
@@ -586,25 +583,6 @@ void raw_input::window_scale_cb(GLFWwindow*, float x, float y)
     _dpi *= _cscale;
 
     cscale.post(_cscale);
-}
-
-mat3 raw_input::make_ortho2d(float w, float h)
-{
-    mat3 m;
-    m[0][0] = 2.f / w;
-    m[1][1] = 2.f / h;
-    m[2][0] = -1;
-    m[2][1] = -1;
-    return m;
-}
-mat3 raw_input::make_ortho2d_inv(float w, float h)
-{
-    mat3 m;
-    m[0][0] = w / 2.f;
-    m[1][1] = h / 2.f;
-    m[2][0] = w / 2.f;
-    m[2][1] = h / 2.f;
-    return m;
 }
 
 // input map
