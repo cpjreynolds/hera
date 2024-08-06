@@ -26,10 +26,70 @@ class Observer;
 
 template<typename... Ts>
 struct thunk {
+private:
     using fn_type = void (*)(void*, Ts&&...);
+
+    template<auto mem_ptr, typename T>
+        requires std::is_pointer_v<T>
+    static consteval fn_type make_thunk()
+    {
+        if constexpr (std::derived_from<std::remove_pointer_t<T>, Observer>) {
+            return [](void* iptr, Ts&&... args) {
+                T i = static_cast<T>(reinterpret_cast<Observer*>(iptr));
+                (i->*mem_ptr)(std::forward<Ts>(args)...);
+            };
+        }
+        else {
+            return [](void* iptr, Ts&&... args) {
+                (reinterpret_cast<T>(iptr)->*mem_ptr)(
+                    std::forward<Ts>(args)...);
+            };
+        }
+    }
+
+    template<typename C>
+        requires std::is_pointer_v<C>
+    static consteval fn_type make_thunk()
+    {
+        if constexpr (std::derived_from<std::remove_pointer_t<C>, Observer>) {
+            return [](void* iptr, Ts&&... args) {
+                C i = static_cast<C>(reinterpret_cast<Observer*>(iptr));
+                i->operator()(std::forward<Ts>(args)...);
+            };
+        }
+        else {
+            return [](void* iptr, Ts&&... args) {
+                reinterpret_cast<C>(iptr)->operator()(
+                    std::forward<Ts>(args)...);
+            };
+        }
+    }
+
+    template<typename T>
+    static constexpr void* make_ptr(T* ptr)
+    {
+        if constexpr (std::derived_from<T, Observer>) {
+            return static_cast<T::Observer*>(ptr);
+        }
+        else {
+            return ptr;
+        }
+    }
+
+    template<typename T>
+    static constexpr void* make_ptr(const T* ptr)
+    {
+        if constexpr (std::derived_from<T, Observer>) {
+            return const_cast<void*>(static_cast<const T::Observer*>(ptr));
+        }
+        else {
+            return const_cast<void*>(ptr);
+        }
+    }
 
     static_assert(sizeof(uint128_t) == (sizeof(fn_type) + sizeof(void*)));
 
+public:
     union {
         uint128_t key;
         struct {
@@ -39,8 +99,6 @@ struct thunk {
 #elif defined(HERA_BIG_ENDIAN)
             void* instance;
             fn_type thunktion;
-#else
-#error "undefined endianness"
 #endif
         };
     };
@@ -67,84 +125,28 @@ struct thunk {
         requires invocable<decltype(mem_ptr), T*, Ts...>
     static constexpr thunk bind(T* obj)
     {
-        if constexpr (std::derived_from<T, Observer>) {
-            return {[](void* iptr, Ts&&... args) {
-                        auto i =
-                            static_cast<T*>(static_cast<T::Observer*>(iptr));
-                        (i->*mem_ptr)(std::forward<Ts>(args)...);
-                    },
-                    static_cast<Observer*>(obj)};
-        }
-        else {
-            return {[](void* iptr, Ts&&... args) {
-                        (static_cast<T*>(iptr)->*mem_ptr)(
-                            std::forward<Ts>(args)...);
-                    },
-                    obj};
-        }
+        return {make_thunk<mem_ptr, decltype(obj)>(), make_ptr(obj)};
     }
 
     template<auto mem_ptr, typename T>
         requires invocable<decltype(mem_ptr), const T*, Ts...>
     static constexpr thunk bind(const T* obj)
     {
-        if constexpr (std::derived_from<T, Observer>) {
-            return {[](void* iptr, Ts&&... args) {
-                        const auto i = static_cast<const T*>(
-                            static_cast<const T::Observer*>(iptr));
-                        (i->*mem_ptr)(std::forward<Ts>(args)...);
-                    },
-                    const_cast<void*>(static_cast<const T::Observer*>(obj))};
-        }
-        else {
-            return {[](void* iptr, Ts&&... args) {
-                        (static_cast<const T*>(iptr)->*mem_ptr)(
-                            std::forward<Ts>(args)...);
-                    },
-                    const_cast<void*>(obj)};
-        }
+        return {make_thunk<mem_ptr, decltype(obj)>(), make_ptr(obj)};
     }
 
     template<typename C>
         requires invocable<C, Ts...>
     static constexpr thunk bind(C* obj)
     {
-        if constexpr (std::derived_from<C, Observer>) {
-            return {[](void* iptr, Ts&&... args) {
-                        auto i =
-                            static_cast<C*>(static_cast<C::Observer*>(iptr));
-                        i->operator()(std::forward<Ts>(args)...);
-                    },
-                    obj};
-        }
-        else {
-            return {[](void* iptr, Ts&&... args) {
-                        static_cast<C*>(iptr)->operator()(
-                            std::forward<Ts>(args)...);
-                    },
-                    obj};
-        }
+        return {make_thunk<decltype(obj)>(), make_ptr(obj)};
     }
 
     template<typename C>
         requires invocable<const C, Ts...>
     static constexpr thunk bind(const C* obj)
     {
-        if constexpr (std::derived_from<C, Observer>) {
-            return {[](void* iptr, Ts&&... args) {
-                        const auto i = static_cast<const C*>(
-                            static_cast<const C::Observer*>(iptr));
-                        i->operator()(std::forward<Ts>(args)...);
-                    },
-                    const_cast<void*>(static_cast<const C::Observer*>(obj))};
-        }
-        else {
-            return {[](void* iptr, Ts&&... args) {
-                        static_cast<const C*>(iptr)->operator()(
-                            std::forward<Ts>(args)...);
-                    },
-                    const_cast<void*>(obj)};
-        }
+        return {make_thunk<decltype(obj)>(), make_ptr(obj)};
     }
 
     template<typename... Args>
@@ -202,7 +204,7 @@ protected:
     Observer() {};
     ~Observer()
     {
-        for (auto&& wptr : signals) {
+        for (auto& wptr : signals) {
             if (auto ptr = wptr.lock()) {
                 ptr->do_disconnect(this);
             }
@@ -211,7 +213,7 @@ protected:
 
     Observer(const Observer& other) : signals{other.signals}
     {
-        for (auto&& wptr : signals) {
+        for (auto& wptr : signals) {
             if (auto ptr = wptr.lock()) {
                 ptr->copy_to(&other, this);
             }
@@ -219,13 +221,13 @@ protected:
     }
     Observer& operator=(const Observer& other)
     {
-        signals = other.signals;
+        Observer(other).swap(*this);
         return *this;
     }
 
     Observer(Observer&& other) : signals{std::move(other.signals)}
     {
-        for (auto&& wptr : signals) {
+        for (auto& wptr : signals) {
             if (auto ptr = wptr.lock()) {
                 ptr->move_to(&other, this);
             }
