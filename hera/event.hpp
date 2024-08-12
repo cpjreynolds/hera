@@ -198,10 +198,53 @@ class Observer {
     template<typename... Ts>
     friend class signal;
 
-    mutable vector<weak_ptr<detail::signal_block_base>> signals;
+    using block_base = detail::signal_block_base;
+
+    struct connection {
+        void* iptr;
+        weak_ptr<block_base> sigblock;
+    };
+
+    static constexpr auto conn_iptr = [](const connection& v) -> void* const& {
+        return v.iptr;
+    };
+
+    // mutable vector<weak_ptr<detail::signal_block_base>> signals;
+    mutable vector<connection> signals;
 
 protected:
     Observer() {};
+
+    ~Observer()
+    {
+        for (auto& [iptr, wptr] : signals) {
+            if (auto ptr = wptr.lock()) {
+                ptr->do_disconnect((const void*)iptr);
+            }
+        }
+    }
+
+    auto equal_range(const void* value) const
+    {
+        return ranges::equal_range(signals, value, {}, conn_iptr);
+    }
+
+    auto equal_this(this const auto& self) { return self.equal_range(&self); }
+
+    template<typename Self>
+    void copy_from(this Self& self, const Self& other)
+    {
+        auto to_copy = other.equal_this();
+
+        auto repointed =
+            views::transform(to_copy, [sptr = &self](const connection& v) {
+                return connection{sptr, v.sigblock};
+            });
+
+        auto pos = ranges::equal_range(self.signals, &self, {}, conn_iptr);
+    }
+
+    /*
     ~Observer()
     {
         for (auto& wptr : signals) {
@@ -238,9 +281,22 @@ protected:
         Observer(std::move(other)).swap(*this);
         return *this;
     }
+    */
 
     void swap(Observer& other) { signals.swap(other.signals); }
 };
+
+struct tester : Observer {
+    using Observer::copy_from;
+};
+
+void test()
+{
+    tester x;
+    tester y;
+
+    x.copy_from(y);
+}
 
 template<typename... Ts>
 class signal {
