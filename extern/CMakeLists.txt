@@ -76,7 +76,7 @@ add_subdirectory(fmt)
 # ==[quill]==
 set(QUILL_FMT_EXTERNAL ON CACHE BOOL "" FORCE)
 add_subdirectory(quill)
-target_compile_options(quill PRIVATE -Wno-deprecated)
+#target_compile_options(quill PRIVATE -Wno-deprecated)
 
 # ==[sol]==
 set(SOL2_ENABLE_INSTALL OFF)

@@ -17,8 +17,8 @@
 #ifndef HERA_LOG_HPP
 #define HERA_LOG_HPP
 
-#include "quill/LogLevel.h"
-#include <quill/Quill.h>
+#include <quill/Logger.h>
+#include <quill/LogMacros.h>
 
 namespace hera {
 

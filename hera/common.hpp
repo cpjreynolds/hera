@@ -54,10 +54,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <quill/Fmt.h>
+#include <quill/bundled/fmt/format.h>
 
 // needs to be in global for specializations
-// namespace fmt = fmtquill;
+namespace fmt = fmtquill;
 
 namespace hera {
 
