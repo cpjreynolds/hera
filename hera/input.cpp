@@ -288,13 +288,13 @@ toml::table& key_event::insert_into(toml::table& table) const
 GLFWwindow* input::window = nullptr;
 GLFWmonitor* input::monitor = nullptr;
 
-signal<key_event> input::keys{};
-signal<input_action> input::actions{};
-signal<vec2, vec2> input::cursor{};
-signal<vec2> input::scroll{};
-signal<ivec2> input::fbsize{};
-signal<ivec2> input::winsize{};
-signal<vec2> input::cscale{};
+signal<void(key_event)> input::keys{};
+signal<void(input_action)> input::actions{};
+signal<void(vec2, vec2)> input::cursor{};
+signal<void(vec2)> input::scroll{};
+signal<void(ivec2)> input::fbsize{};
+signal<void(ivec2)> input::winsize{};
+signal<void(vec2)> input::cscale{};
 
 vec2 input::_cursor_pos = {0, 0};
 

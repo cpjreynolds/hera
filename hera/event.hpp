@@ -24,10 +24,13 @@ namespace hera {
 
 class Observer;
 
-template<typename... Ts>
-struct thunk {
+template<typename>
+struct thunk;
+
+template<typename R, typename... Ts>
+struct thunk<R(Ts...)> {
 private:
-    using fn_type = void (*)(void*, Ts&&...);
+    using fn_type = R (*)(void*, Ts&&...);
 
     template<auto mem_ptr, typename T>
         requires std::is_pointer_v<T>
@@ -36,12 +39,12 @@ private:
         if constexpr (std::derived_from<std::remove_pointer_t<T>, Observer>) {
             return [](void* iptr, Ts&&... args) {
                 T i = static_cast<T>(reinterpret_cast<Observer*>(iptr));
-                (i->*mem_ptr)(std::forward<Ts>(args)...);
+                return (i->*mem_ptr)(std::forward<Ts>(args)...);
             };
         }
         else {
             return [](void* iptr, Ts&&... args) {
-                (reinterpret_cast<T>(iptr)->*mem_ptr)(
+                return (reinterpret_cast<T>(iptr)->*mem_ptr)(
                     std::forward<Ts>(args)...);
             };
         }
@@ -54,12 +57,12 @@ private:
         if constexpr (std::derived_from<std::remove_pointer_t<C>, Observer>) {
             return [](void* iptr, Ts&&... args) {
                 C i = static_cast<C>(reinterpret_cast<Observer*>(iptr));
-                i->operator()(std::forward<Ts>(args)...);
+                return i->operator()(std::forward<Ts>(args)...);
             };
         }
         else {
             return [](void* iptr, Ts&&... args) {
-                reinterpret_cast<C>(iptr)->operator()(
+                return reinterpret_cast<C>(iptr)->operator()(
                     std::forward<Ts>(args)...);
             };
         }
@@ -113,46 +116,47 @@ public:
 #endif
 
     template<auto fun_ptr>
-        requires invocable<decltype(fun_ptr), Ts...>
+        requires invocable_r<R, decltype(fun_ptr), Ts...>
     static constexpr thunk bind()
     {
-        return {
-            [](void*, Ts&&... args) { (*fun_ptr)(std::forward<Ts>(args)...); },
-            nullptr};
+        return {[](void*, Ts&&... args) {
+                    return (*fun_ptr)(std::forward<Ts>(args)...);
+                },
+                nullptr};
     }
 
     template<auto mem_ptr, typename T>
-        requires invocable<decltype(mem_ptr), T*, Ts...>
+        requires invocable_r<R, decltype(mem_ptr), T*, Ts...>
     static constexpr thunk bind(T* obj)
     {
         return {make_thunk<mem_ptr, decltype(obj)>(), make_ptr(obj)};
     }
 
     template<auto mem_ptr, typename T>
-        requires invocable<decltype(mem_ptr), const T*, Ts...>
+        requires invocable_r<R, decltype(mem_ptr), const T*, Ts...>
     static constexpr thunk bind(const T* obj)
     {
         return {make_thunk<mem_ptr, decltype(obj)>(), make_ptr(obj)};
     }
 
     template<typename C>
-        requires invocable<C, Ts...>
+        requires invocable_r<R, C, Ts...>
     static constexpr thunk bind(C* obj)
     {
         return {make_thunk<decltype(obj)>(), make_ptr(obj)};
     }
 
     template<typename C>
-        requires invocable<const C, Ts...>
+        requires invocable_r<R, const C, Ts...>
     static constexpr thunk bind(const C* obj)
     {
         return {make_thunk<decltype(obj)>(), make_ptr(obj)};
     }
 
     template<typename... Args>
-    void operator()(Args&&... args) const
+    R operator()(Args&&... args) const
     {
-        thunktion(instance, static_cast<Ts&&>(args)...);
+        return thunktion(instance, static_cast<Ts&&>(args)...);
     }
 
     constexpr friend bool operator==(const thunk& lhs, const thunk& rhs)
@@ -195,7 +199,7 @@ protected:
 }; // namespace detail
 
 class Observer {
-    template<typename... Ts>
+    template<typename>
     friend class signal;
 
     using block_base = detail::signal_block_base;
@@ -211,6 +215,13 @@ class Observer {
 
     // mutable vector<weak_ptr<detail::signal_block_base>> signals;
     mutable vector<connection> signals;
+
+    template<typename Self>
+        requires(!same_as<Self, Observer>)
+    void add_connection(this Self& self, weak_ptr<block_base> bptr)
+    {
+        self.signals.emplace_back((void*)&self, std::move(bptr));
+    }
 
 protected:
     Observer() {};
@@ -290,7 +301,7 @@ struct tester : Observer {
     using Observer::copy_from;
 };
 
-void test()
+inline void test()
 {
     tester x;
     tester y;
@@ -298,8 +309,11 @@ void test()
     x.copy_from(y);
 }
 
-template<typename... Ts>
-class signal {
+template<typename>
+class signal;
+
+template<typename R, typename... Ts>
+class signal<R(Ts...)> {
 public:
     // immediate notification of all slots.
     template<typename... Args>
@@ -333,13 +347,13 @@ public:
 
     // connects an object and member function
     template<auto mem_ptr, typename T>
-        requires invocable<decltype(mem_ptr), T*, Ts...>
+        requires invocable_r<R, decltype(mem_ptr), T*, Ts...>
     void connect(T* obj)
     {
-        block->do_connect(thunk<Ts...>::template bind<mem_ptr>(obj));
+        block->do_connect(thunk<R(Ts...)>::template bind<mem_ptr>(obj));
 
         if constexpr (std::derived_from<T, Observer>) {
-            static_cast<Observer*>(obj)->signals.emplace_back(block);
+            obj->add_connection(block);
         }
     }
 
@@ -351,13 +365,13 @@ public:
 
     // connects a const object and member function
     template<auto mem_ptr, typename T>
-        requires invocable<decltype(mem_ptr), const T*, Ts...>
+        requires invocable_r<R, decltype(mem_ptr), const T*, Ts...>
     void connect(const T* obj)
     {
-        block->do_connect(thunk<Ts...>::template bind<mem_ptr>(obj));
+        block->do_connect(thunk<R(Ts...)>::template bind<mem_ptr>(obj));
 
         if constexpr (std::derived_from<T, Observer>) {
-            static_cast<const Observer*>(obj)->signals.emplace_back(block);
+            obj->add_connection(block);
         }
     }
 
@@ -367,118 +381,121 @@ public:
         connect<mem_ptr>(std::addressof(obj));
     }
 
-    template<typename T, void (T::*mem_ptr)(Ts...)>
+    template<typename T, R (T::*mem_ptr)(Ts...)>
     void connect(T* obj)
     {
         connect<mem_ptr>(obj);
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) noexcept>
+    template<typename T, R (T::*mem_ptr)(Ts...) noexcept>
     void connect(T* obj)
     {
         connect<mem_ptr>(obj);
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) &>
+    template<typename T, R (T::*mem_ptr)(Ts...) &>
     void connect(T* obj)
     {
         connect<mem_ptr>(obj);
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) & noexcept>
+    template<typename T, R (T::*mem_ptr)(Ts...) & noexcept>
     void connect(T* obj)
     {
         connect<mem_ptr>(obj);
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) const>
+    template<typename T, R (T::*mem_ptr)(Ts...) const>
     void connect(const T* obj)
     {
         connect<mem_ptr>(obj);
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) const noexcept>
+    template<typename T, R (T::*mem_ptr)(Ts...) const noexcept>
     void connect(const T* obj)
     {
         connect<mem_ptr>(obj);
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) const&>
+    template<typename T, R (T::*mem_ptr)(Ts...) const&>
     void connect(const T* obj)
     {
         connect<mem_ptr>(obj);
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) const& noexcept>
+    template<typename T, R (T::*mem_ptr)(Ts...) const& noexcept>
     void connect(const T* obj)
     {
         connect<mem_ptr>(obj);
     }
-    template<typename T, void (T::*mem_ptr)(Ts...)>
+    template<typename T, R (T::*mem_ptr)(Ts...)>
     void connect(T& obj)
     {
         connect<mem_ptr>(std::addressof(obj));
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) noexcept>
+    template<typename T, R (T::*mem_ptr)(Ts...) noexcept>
     void connect(T& obj)
     {
         connect<mem_ptr>(std::addressof(obj));
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) &>
+    template<typename T, R (T::*mem_ptr)(Ts...) &>
     void connect(T& obj)
     {
         connect<mem_ptr>(std::addressof(obj));
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) & noexcept>
+    template<typename T, R (T::*mem_ptr)(Ts...) & noexcept>
     void connect(T& obj)
     {
         connect<mem_ptr>(std::addressof(obj));
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) const>
+    template<typename T, R (T::*mem_ptr)(Ts...) const>
     void connect(const T& obj)
     {
         connect<mem_ptr>(std::addressof(obj));
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) const noexcept>
+    template<typename T, R (T::*mem_ptr)(Ts...) const noexcept>
     void connect(const T& obj)
     {
         connect<mem_ptr>(std::addressof(obj));
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) const&>
+    template<typename T, R (T::*mem_ptr)(Ts...) const&>
     void connect(const T& obj)
     {
         connect<mem_ptr>(std::addressof(obj));
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) const& noexcept>
+    template<typename T, R (T::*mem_ptr)(Ts...) const& noexcept>
     void connect(const T& obj)
     {
         connect<mem_ptr>(std::addressof(obj));
     }
 
     // connects a function pointer
-    template<void (*fun_ptr)(Ts...)>
+    template<R (*fun_ptr)(Ts...)>
     void connect()
     {
-        block->do_connect(thunk<Ts...>::template bind<fun_ptr>());
+        block->do_connect(thunk<R(Ts...)>::template bind<fun_ptr>());
     }
     // connects a function pointer
-    template<void (*fun_ptr)(Ts...) noexcept>
+    template<R (*fun_ptr)(Ts...) noexcept>
     void connect()
     {
-        block->do_connect(thunk<Ts...>::template bind<fun_ptr>());
+        block->do_connect(thunk<R(Ts...)>::template bind<fun_ptr>());
     }
 
     // connects a callable object.
     template<typename C>
-        requires invocable<C, Ts...>
+        requires invocable_r<R, C, Ts...>
     void connect(C* callable)
     {
-        block->do_connect(thunk<Ts...>::template bind<C>(callable));
+        block->do_connect(thunk<R(Ts...)>::template bind<C>(callable));
         if constexpr (std::derived_from<C, Observer>) {
-            static_cast<Observer*>(callable)->signals.emplace_back(block);
+            // static_cast<Observer*>(callable)->signals.emplace_back(block);
+            callable->add_connection(block);
         }
     }
     // connects a const callable object.
     template<typename C>
-        requires invocable<const C, Ts...>
+        requires invocable_r<R, const C, Ts...>
     void connect(const C* callable)
     {
-        block->do_connect(thunk<Ts...>::template bind<C>(callable));
+        block->do_connect(thunk<R(Ts...)>::template bind<C>(callable));
         if constexpr (std::derived_from<C, Observer>) {
-            static_cast<const Observer*>(callable)->signals.emplace_back(block);
+            // static_cast<const
+            // Observer*>(callable)->signals.emplace_back(block);
+            callable->add_connection(block);
         }
     }
 
@@ -497,105 +514,105 @@ public:
 
     // member function disconnect
     template<auto mem_ptr, typename T>
-        requires invocable<decltype(mem_ptr), T*, Ts...>
+        requires invocable_r<R, decltype(mem_ptr), T*, Ts...>
     void disconnect(const T* obj)
     {
-        block->do_disconnect(thunk<Ts...>::template bind<mem_ptr>(obj));
+        block->do_disconnect(thunk<R(Ts...)>::template bind<mem_ptr>(obj));
     }
 
-    template<typename T, void (T::*mem_ptr)(Ts...)>
+    template<typename T, R (T::*mem_ptr)(Ts...)>
     void disconnect(T* obj)
     {
         disconnect<mem_ptr>(obj);
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) noexcept>
+    template<typename T, R (T::*mem_ptr)(Ts...) noexcept>
     void disconnect(T* obj)
     {
         disconnect<mem_ptr>(obj);
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) &>
+    template<typename T, R (T::*mem_ptr)(Ts...) &>
     void disconnect(T* obj)
     {
         disconnect<mem_ptr>(obj);
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) & noexcept>
+    template<typename T, R (T::*mem_ptr)(Ts...) & noexcept>
     void disconnect(T* obj)
     {
         disconnect<mem_ptr>(obj);
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) const>
+    template<typename T, R (T::*mem_ptr)(Ts...) const>
     void disconnect(const T* obj)
     {
         disconnect<mem_ptr>(obj);
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) const noexcept>
+    template<typename T, R (T::*mem_ptr)(Ts...) const noexcept>
     void disconnect(const T* obj)
     {
         disconnect<mem_ptr>(obj);
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) const&>
+    template<typename T, R (T::*mem_ptr)(Ts...) const&>
     void disconnect(const T* obj)
     {
         disconnect<mem_ptr>(obj);
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) const& noexcept>
+    template<typename T, R (T::*mem_ptr)(Ts...) const& noexcept>
     void disconnect(const T* obj)
     {
         disconnect<mem_ptr>(obj);
     }
-    template<typename T, void (T::*mem_ptr)(Ts...)>
+    template<typename T, R (T::*mem_ptr)(Ts...)>
     void disconnect(T& obj)
     {
         disconnect<mem_ptr>(std::addressof(obj));
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) noexcept>
+    template<typename T, R (T::*mem_ptr)(Ts...) noexcept>
     void disconnect(T& obj)
     {
         disconnect<mem_ptr>(std::addressof(obj));
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) &>
+    template<typename T, R (T::*mem_ptr)(Ts...) &>
     void disconnect(T& obj)
     {
         disconnect<mem_ptr>(std::addressof(obj));
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) & noexcept>
+    template<typename T, R (T::*mem_ptr)(Ts...) & noexcept>
     void disconnect(T& obj)
     {
         disconnect<mem_ptr>(std::addressof(obj));
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) const>
+    template<typename T, R (T::*mem_ptr)(Ts...) const>
     void disconnect(const T& obj)
     {
         disconnect<mem_ptr>(std::addressof(obj));
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) const noexcept>
+    template<typename T, R (T::*mem_ptr)(Ts...) const noexcept>
     void disconnect(const T& obj)
     {
         disconnect<mem_ptr>(std::addressof(obj));
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) const&>
+    template<typename T, R (T::*mem_ptr)(Ts...) const&>
     void disconnect(const T& obj)
     {
         disconnect<mem_ptr>(std::addressof(obj));
     }
-    template<typename T, void (T::*mem_ptr)(Ts...) const& noexcept>
+    template<typename T, R (T::*mem_ptr)(Ts...) const& noexcept>
     void disconnect(const T& obj)
     {
         disconnect<mem_ptr>(std::addressof(obj));
-    }
-
-    // function pointer disconnect.
-    template<void (*fun_ptr)(Ts...)>
-    void disconnect()
-    {
-        block->do_disconnect(thunk<Ts...>::template bind<fun_ptr>());
     }
 
     // function pointer disconnect.
-    template<void (*fun_ptr)(Ts...) noexcept>
+    template<R (*fun_ptr)(Ts...)>
     void disconnect()
     {
-        block->do_disconnect(thunk<Ts...>::template bind<fun_ptr>());
+        block->do_disconnect(thunk<R(Ts...)>::template bind<fun_ptr>());
+    }
+
+    // function pointer disconnect.
+    template<R (*fun_ptr)(Ts...) noexcept>
+    void disconnect()
+    {
+        block->do_disconnect(thunk<R(Ts...)>::template bind<fun_ptr>());
     }
 
     // disconnects a callable or all members of an instance
@@ -617,10 +634,10 @@ public:
 
 private:
     struct signal_block final : detail::signal_block_base {
-        vector<thunk<Ts...>> slots;
+        vector<thunk<R(Ts...)>> slots;
         vector<tuple<Ts...>> evqueue;
 
-        void do_connect(const thunk<Ts...>& tk)
+        void do_connect(const thunk<R(Ts...)>& tk)
         {
             slots.emplace(ranges::upper_bound(slots, tk), tk);
         }
@@ -631,7 +648,7 @@ private:
             slots.erase(b, e);
         }
 
-        void do_disconnect(const thunk<Ts...>& tk)
+        void do_disconnect(const thunk<R(Ts...)>& tk)
         {
             auto [b, e] = ranges::equal_range(slots, tk);
             slots.erase(b, e);

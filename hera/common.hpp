@@ -115,6 +115,11 @@ using std::tuple_size_v;
 
 using std::bit_cast;
 
+template<typename R, typename Fn, typename... Args>
+concept invocable_r = requires(Fn&& fn, Args&&... args) {
+    std::invoke_r<R>(std::forward<Fn>(fn), std::forward<Args>(args)...);
+};
+
 template<typename T, typename U>
 using like_t = decltype(std::forward_like<T>(declval<U>()));
 
