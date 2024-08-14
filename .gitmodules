@@ -29,3 +29,6 @@
 [submodule "extern/sol2"]
 	path = extern/sol2
 	url = git@github.com:cpjreynolds/sol2.git
+[submodule "extern/cpptrace"]
+	path = extern/cpptrace
+	url = git@github.com:jeremy-rifkin/cpptrace.git
