@@ -26,13 +26,6 @@
 	path = extern/tomlplusplus
 	url = git@github.com:marzer/tomlplusplus.git
 	shallow = true
-[submodule "extern/fmt"]
-	path = extern/fmt
-	url = git@github.com:fmtlib/fmt.git
-	shallow = true
-[submodule "extern/cpptrace"]
-	path = extern/cpptrace
-	url = git@github.com:cpjreynolds/cpptrace.git
 [submodule "extern/sol2"]
 	path = extern/sol2
 	url = git@github.com:cpjreynolds/sol2.git

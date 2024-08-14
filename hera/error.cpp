@@ -100,13 +100,12 @@ void fixup_filepaths(string&);
         cpptrace::generate_trace().print(buf, istty);
     }
     catch (...) {
-        buf << "terminate after throwing: "
-            << cpptrace::detail::exception_type_name() << "\n";
+        buf << "terminate after throwing unknown exception\n";
         cpptrace::generate_trace().print(buf, istty);
     }
 
     if (istty) {
-        quill::flush();
+        hera::global_log->flush_log();
         auto bufdata = buf.view();
         constexpr string_view sgr0 = "\033[0m\n";
         std::cout.write(sgr0.data(), sgr0.size());
@@ -115,7 +114,7 @@ void fixup_filepaths(string&);
     }
     else {
         LOG_CRITICAL("{}", std::move(buf).str());
-        quill::flush();
+        hera::global_log->flush_log();
     }
 #if HERA_NICEABORT
     std::exit(1);
