@@ -82,9 +82,8 @@ void init::config()
     Config::global_table = &tbl;
     auto loglevel_cfg = tbl.at_path("logging.level").value_or<string>("debug");
     auto loglevel = quill::loglevel_from_string(loglevel_cfg);
-    auto logstr_proper = quill::loglevel_to_string(loglevel);
-    LOG_INFO("log level: {}", logstr_proper);
-    quill::get_logger()->set_log_level(loglevel);
+    LOG_INFO("log level: {}", loglevel_cfg);
+    global_log->set_log_level(loglevel);
     LOG_DEBUG("init config done");
 }
 

@@ -20,7 +20,6 @@ set(HERA_LIBRARIES
     TBB::tbbmalloc
     TBB::tbbmalloc_proxy
     quill::quill
-    fmt::fmt
     Lua::Lua
     sol2::sol2
     freetype

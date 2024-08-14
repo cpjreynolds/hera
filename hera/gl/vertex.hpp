@@ -17,8 +17,6 @@
 #ifndef HERA_VERTEX_HPP
 #define HERA_VERTEX_HPP
 
-#include <quill/Fmt.h>
-
 #include <hera/common.hpp>
 #include <hera/error.hpp>
 #include <hera/format.hpp>

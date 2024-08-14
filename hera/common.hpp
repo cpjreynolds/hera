@@ -25,6 +25,7 @@
 #include <span>
 #include <filesystem>
 #include <utility>
+#include <thread>
 #include <tuple>
 #include <map>
 #include <iostream>
@@ -55,6 +56,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <quill/bundled/fmt/format.h>
+#include <quill/bundled/fmt/ostream.h>
 
 // needs to be in global for specializations
 namespace fmt = fmtquill;

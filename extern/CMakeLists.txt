@@ -69,12 +69,7 @@ endif()
 # ==[boost]==
 #add_subdirectory(boost-1.84.0)
 
-# ==[fmt]==
-set(FMT_INSTALL OFF CACHE BOOL "" FORCE)
-add_subdirectory(fmt)
-
 # ==[quill]==
-set(QUILL_FMT_EXTERNAL ON CACHE BOOL "" FORCE)
 add_subdirectory(quill)
 #target_compile_options(quill PRIVATE -Wno-deprecated)
 
