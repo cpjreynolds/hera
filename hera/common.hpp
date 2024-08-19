@@ -46,6 +46,8 @@
 #include <initializer_list>
 #include <iterator>
 #include <ratio>
+#include <shared_mutex>
+#include <mutex>
 
 #include <cstddef>
 
@@ -57,6 +59,8 @@
 
 #include <quill/bundled/fmt/format.h>
 #include <quill/bundled/fmt/ostream.h>
+
+#include <oneapi/tbb/concurrent_queue.h>
 
 // needs to be in global for specializations
 namespace fmt = fmtquill;
@@ -251,6 +255,15 @@ using std::unordered_multimap;
 using std::unordered_multiset;
 using std::unordered_set;
 using std::vector;
+
+using std::mutex;
+using std::shared_mutex;
+
+using std::scoped_lock;
+using std::shared_lock;
+using std::unique_lock;
+
+using oneapi::tbb::concurrent_queue;
 
 using std::string_literals::operator""s;
 using std::string_view_literals::operator""sv;
