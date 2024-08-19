@@ -445,14 +445,14 @@ public:
 };
 
 struct input {
-    static signal<void(key_event)> keys;
-    static signal<void(input_action)> actions;
+    static qsignal<void(key_event)> keys;
+    static qsignal<void(input_action)> actions;
     // {cursor delta, cursor position}
-    static signal<void(vec2, vec2)> cursor;
-    static signal<void(vec2)> scroll;
-    static signal<void(ivec2)> fbsize;
-    static signal<void(ivec2)> winsize;
-    static signal<void(vec2)> cscale;
+    static qsignal<void(vec2, vec2)> cursor;
+    static qsignal<void(vec2)> scroll;
+    static qsignal<void(ivec2)> fbsize;
+    static qsignal<void(ivec2)> winsize;
+    static qsignal<void(vec2)> cscale;
 
     enum cmode {
         cursor_normal = GLFW_CURSOR_NORMAL,

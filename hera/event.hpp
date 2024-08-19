@@ -145,26 +145,36 @@ protected:
 };
 
 class Observer {
-    template<typename>
+    template<typename, typename>
     friend class signal;
-
-    using block_base = signal_block_base;
 
     struct connection {
         void* iptr;
-        weak_ptr<block_base> sigblock;
+        weak_ptr<signal_block_base> sigblock;
+
+        void retarget(Observer* from, Observer* to)
+        {
+            auto from_ptr = reinterpret_cast<uintptr_t>(from);
+            auto to_ptr = reinterpret_cast<uintptr_t>(to);
+            auto instance_ptr = reinterpret_cast<uintptr_t>(iptr);
+
+            auto diff = instance_ptr - from_ptr;
+
+            auto target = to_ptr + diff;
+
+            iptr = reinterpret_cast<void*>(target);
+        }
     };
 
     static constexpr auto conn_iptr = [](const connection& v) -> void* const& {
         return v.iptr;
     };
 
-    // mutable vector<weak_ptr<detail::signal_block_base>> signals;
     mutable vector<connection> signals;
 
     template<typename Self>
         requires(!same_as<Self, Observer>)
-    void add_connection(this Self& self, weak_ptr<block_base> bptr)
+    void add_connection(this Self& self, weak_ptr<signal_block_base> bptr)
     {
         auto pos =
             ranges::upper_bound(self.signals, (void*)&self, {}, conn_iptr);
@@ -176,7 +186,12 @@ class Observer {
         return ranges::equal_range(signals, value, {}, conn_iptr);
     }
 
-    auto equal_this(this const auto& self) { return self.equal_range(&self); }
+    template<typename Self>
+        requires(!same_as<Self, Observer>)
+    auto equal_this(this const Self& self)
+    {
+        return self.equal_range(&self);
+    }
 
 protected:
     Observer() {};
@@ -209,9 +224,11 @@ protected:
 
     Observer(Observer&& other) : signals{std::move(other.signals)}
     {
-        for (auto& [iptr, wptr] : signals) {
-            if (auto ptr = wptr.lock()) {
-                ptr->move_to(&other, this);
+        for (auto& conn : signals) {
+            auto old_value = conn.iptr;
+            conn.retarget(&other, this);
+            if (auto ptr = conn.sigblock.lock()) {
+                ptr->move_to(old_value, conn.iptr);
             }
         }
     }
@@ -237,13 +254,13 @@ inline void test()
 }
 
 template<typename>
-class basic_signal_block;
+class common_signal_block;
 
 template<typename R, typename... Ts>
-class basic_signal_block<R(Ts...)> : signal_block_base {
-protected:
+class common_signal_block<R(Ts...)> : public signal_block_base {
     using thunk_type = thunk<R(Ts...)>;
 
+protected:
     mutable shared_mutex mtx;
     vector<thunk<R(Ts...)>> slots;
 
@@ -319,11 +336,19 @@ public:
 };
 
 template<typename>
+class basic_signal_block;
+
+template<typename R, typename... Ts>
+class basic_signal_block<R(Ts...)> final
+    : public common_signal_block<R(Ts...)> {};
+
+template<typename>
 struct queue_signal_block;
 
 template<typename R, typename... Ts>
     requires std::is_default_constructible_v<tuple<Ts...>>
-struct queue_signal_block<R(Ts...)> : basic_signal_block<R(Ts...)> {
+struct queue_signal_block<R(Ts...)> final
+    : public common_signal_block<R(Ts...)> {
     concurrent_queue<tuple<Ts...>> evqueue;
 
     template<typename... Args>
@@ -332,12 +357,10 @@ struct queue_signal_block<R(Ts...)> : basic_signal_block<R(Ts...)> {
         evqueue.emplace(static_cast<Ts&&>(args)...);
     }
 
-    void flush()
+    void do_flush()
     {
         shared_lock lk{this->mtx};
-
         tuple<Ts...> event;
-
         while (evqueue.try_pop(event)) {
             for (auto& fn : this->slots) {
                 std::apply(fn, event);
@@ -346,12 +369,10 @@ struct queue_signal_block<R(Ts...)> : basic_signal_block<R(Ts...)> {
     }
 
     template<typename Accumulate>
-    void flush_accumulate(Accumulate&& acc)
+    void do_flush_accumulate(Accumulate&& acc)
     {
         shared_lock lk{this->mtx};
-
         tuple<Ts...> event;
-
         while (evqueue.try_pop(event)) {
             for (auto& fn : this->slots) {
                 acc(std::apply(fn, event));
@@ -360,11 +381,11 @@ struct queue_signal_block<R(Ts...)> : basic_signal_block<R(Ts...)> {
     }
 };
 
-template<typename>
+template<typename R, typename Block = basic_signal_block<R>>
 class signal;
 
-template<typename R, typename... Ts>
-class signal<R(Ts...)> {
+template<typename R, typename Block, typename... Ts>
+class signal<R(Ts...), Block> {
     using thunk_type = thunk<R(Ts...)>;
 
 public:
@@ -375,25 +396,35 @@ public:
         block->fire(std::forward<Args>(args)...);
     }
 
+    // immediate notification of all slots and accumulate return values.
+    template<typename Accumulate, typename... Args>
+    void accumulate(Accumulate&& acc, Args&&... args) const
+    {
+        block->fire_accumulate(std::forward<Accumulate>(acc),
+                               std::forward<Args>(args)...);
+    }
+
     // post an event to the internal queue.
     template<typename... Args>
+        requires same_as<Block, queue_signal_block<R(Ts...)>>
     void post(Args&&... args)
     {
-        block->evqueue.emplace(static_cast<Ts&&>(args)...);
+        block->do_post(std::forward<Args>(args)...);
     }
 
     // flush the event queue to all slots.
     void flush()
+        requires same_as<Block, queue_signal_block<R(Ts...)>>
     {
-        shared_lock lk{block->slot_mtx};
+        block->do_flush();
+    }
 
-        tuple<Ts...> event;
-
-        while (block->evqueue.try_pop(event)) {
-            for (auto& fn : block->slots) {
-                std::apply(fn, event);
-            }
-        }
+    // flush the event queue to all slots and accumulate return values.
+    template<typename Accumulate>
+        requires same_as<Block, queue_signal_block<R(Ts...)>>
+    void flush(Accumulate&& acc)
+    {
+        block->do_flush_accumulate(std::forward<Accumulate>(acc));
     }
 
     // connects an object and member function
@@ -538,69 +569,11 @@ public:
     void disconnect_all() { block->slots.clear(); }
 
 private:
-    struct signal_block final : signal_block_base {
-        mutable shared_mutex slot_mtx;
-        vector<thunk_type> slots;
-        concurrent_queue<tuple<Ts...>> evqueue;
-
-        static constexpr auto proj = [](const thunk_type& t) -> void* const& {
-            return t.instance;
-        };
-
-        template<typename... Args>
-        void fire(Args&&... args) const
-        {
-            shared_lock lk{slot_mtx};
-            for (auto& fn : slots) {
-                fn(std::forward<Args>(args)...);
-            }
-        }
-
-        void do_connect(const thunk_type& tk)
-        {
-            slots.emplace(ranges::upper_bound(slots, tk), tk);
-        }
-
-        void do_disconnect(const void* ptr) override
-        {
-            auto [b, e] = ranges::equal_range(slots, ptr, {}, proj);
-            slots.erase(b, e);
-        }
-
-        void do_disconnect(const thunk_type& tk)
-        {
-            auto [b, e] = ranges::equal_range(slots, tk);
-            slots.erase(b, e);
-        }
-
-        void move_to(const void* from, void* to) override
-        {
-            auto [b, e] = ranges::equal_range(slots, from, {}, proj);
-
-            vector<thunk_type> to_insert{b, e};
-            for (auto& slot : to_insert) {
-                slot.instance = to;
-            }
-            slots.erase(b, e);
-            auto pos = ranges::upper_bound(slots, to_insert.front());
-            slots.insert_range(pos, to_insert);
-        }
-
-        void copy_to(const void* from, void* to) override
-        {
-            auto to_insert = ranges::equal_range(slots, from, {}, proj) |
-                             ranges::to<vector>();
-
-            for (auto& slot : to_insert) {
-                slot.instance = to;
-            }
-            auto pos = ranges::upper_bound(slots, to_insert.front());
-            slots.insert_range(pos, to_insert);
-        }
-    };
-
-    shared_ptr<signal_block> block = std::make_shared<signal_block>();
+    shared_ptr<Block> block = std::make_shared<Block>();
 };
+
+template<typename F>
+using qsignal = signal<F, queue_signal_block<F>>;
 
 } // namespace hera
 
