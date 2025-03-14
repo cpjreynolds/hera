@@ -24,7 +24,7 @@
 
 namespace hera {
 
-class Camera : public Observer {
+class Camera {
     // view, projection, ortho_proj, view_pos
     gl::UniformBuffer<mat4, mat4, mat4, vec3> matblock;
 
@@ -68,6 +68,14 @@ public:
         input::scroll.connect<&Camera::on_scroll>(this);
         input::fbsize.connect<&Camera::on_fbsize>(this);
     };
+
+    ~Camera()
+    {
+        input::actions.disconnect(this);
+        input::cursor.disconnect(this);
+        input::scroll.disconnect(this);
+        input::fbsize.disconnect(this);
+    }
 
     void update();
 

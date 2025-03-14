@@ -32,7 +32,7 @@ template<typename T>
 concept drawable =
     requires(T& obj, const gl::Pipeline& s, float a) { obj.draw(s, a); };
 
-class Renderer : Observer {
+class Renderer {
     GLFWwindow* _window;
 
 public:
@@ -42,6 +42,8 @@ public:
     Renderer(const Config&);
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
+
+    ~Renderer() { input::actions.disconnect(this); }
 
     void init(const Config&);
 

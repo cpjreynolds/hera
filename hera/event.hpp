@@ -23,14 +23,102 @@
 
 namespace hera {
 
-class Observer;
+class expired_slot : public hera::runtime_error {
+public:
+    expired_slot() noexcept : runtime_error{message} {};
 
-template<typename>
+private:
+    static constexpr const char* message = "attempt to call expired slot";
+};
+
+class bad_thunk : public hera::runtime_error {
+public:
+    bad_thunk() noexcept : runtime_error{message} {};
+
+private:
+    static constexpr const char* message = "attempt to call null thunk";
+};
+
+template<typename = void>
 struct thunk;
 
+/*
+ * Type-erased thunk.
+ */
+template<>
+struct thunk<void> {
+#if defined(HERA_LITTLE_ENDIAN)
+    union {
+        uint128_t value;
+        struct {
+            void* fnptr;
+            void* iptr;
+        };
+        struct {
+            uintptr_t fnptr_v;
+            uintptr_t iptr_v;
+        };
+    };
+    template<typename T, typename R, typename... Args>
+    constexpr thunk(R (*fnptr)(void*, Args...), T* iptr) noexcept
+        : fnptr{reinterpret_cast<void*>(fnptr)},
+          iptr{reinterpret_cast<void*>(iptr)} {};
+
+    template<typename R, typename... Args>
+    constexpr thunk(R (*fnptr)(void*, Args...), nullptr_t) noexcept
+        : fnptr{reinterpret_cast<void*>(fnptr)},
+          iptr{nullptr} {};
+#elif defined(HERA_BIG_ENDIAN)
+    union {
+        uint128_t value;
+        struct {
+            void* iptr;
+            void* fnptr;
+        };
+        struct {
+            uintptr_t iptr_v;
+            uintptr_t fnptr_v;
+        };
+    };
+    template<typename T, typename R, typename... Args>
+    constexpr thunk(R (*fnptr)(void*, Args...), T* iptr) noexcept
+        : iptr{reinterpret_cast<void*>(iptr)},
+          fnptr{reinterpret_cast<void*>(fnptr)} {};
+
+    template<typename R, typename... Args>
+    constexpr slot(R (*fnptr)(void*, Args...), nullptr_t) noexcept
+        : fnptr{reinterpret_cast<void*>(fnptr)},
+          iptr{nullptr} {};
+#endif
+    constexpr thunk() noexcept : value{0} {};
+
+    explicit operator bool() const noexcept { return value != 0; }
+
+    friend constexpr auto operator<=>(const thunk& lhs, const thunk& rhs)
+    {
+        return lhs.value <=> rhs.value;
+    }
+
+    friend constexpr bool operator==(const thunk& lhs, const thunk& rhs)
+    {
+        return lhs.value == rhs.value;
+    }
+
+    friend constexpr auto operator<=>(const thunk& lhs, const void* rhs)
+    {
+        return lhs.iptr <=> rhs;
+    }
+
+    friend constexpr bool operator==(const thunk& lhs, const void* rhs)
+    {
+        return lhs.iptr == rhs;
+    }
+};
+
 template<typename R, typename... Ts>
-struct thunk<R(Ts...)> {
+struct thunk<R(Ts...)> : public thunk<void> {
 private:
+    using thunk<void>::thunk;
     using fn_type = R (*)(void*, Ts&&...);
 
     template<auto mem_ptr, typename T>
@@ -53,41 +141,22 @@ private:
         };
     }
 
-    static_assert(sizeof(uint128_t) == (sizeof(fn_type) + sizeof(void*)));
+    template<auto fun_ptr>
+    static consteval fn_type make_thunk()
+    {
+        return [](void*, Ts&&... args) {
+            return (*fun_ptr)(std::forward<Ts>(args)...);
+        };
+    }
 
 public:
-#if defined(HERA_LITTLE_ENDIAN)
-    union {
-        uint128_t key;
-        struct {
-            fn_type thunktion;
-            void* instance;
-        };
-    };
-    constexpr thunk(fn_type thunktion, void* instance) noexcept
-        : thunktion{thunktion},
-          instance{instance} {};
-#elif defined(HERA_BIG_ENDIAN)
-    union {
-        uint128_t key;
-        struct {
-            void* instance;
-            fn_type thunktion;
-        };
-    };
-    constexpr thunk(fn_type thunktion, void* instance) noexcept
-        : instance{instance},
-          thunktion{thunktion} {};
-#endif
+    constexpr thunk(const thunk<void>& tk) noexcept : thunk<void>{tk} {};
 
     template<auto fun_ptr>
         requires invocable_r<R, decltype(fun_ptr), Ts...>
     static constexpr thunk bind()
     {
-        return {[](void*, Ts&&... args) {
-                    return (*fun_ptr)(std::forward<Ts>(args)...);
-                },
-                nullptr};
+        return {make_thunk<fun_ptr>(), nullptr};
     }
 
     template<auto mem_ptr, typename T>
@@ -101,7 +170,7 @@ public:
         requires invocable_r<R, decltype(mem_ptr), const T*, Ts...>
     static constexpr thunk bind(const T* obj)
     {
-        return {make_thunk<mem_ptr, decltype(obj)>(), (void*)obj};
+        return {make_thunk<mem_ptr, decltype(obj)>(), obj};
     }
 
     template<typename C>
@@ -115,158 +184,205 @@ public:
         requires invocable_r<R, const C, Ts...>
     static constexpr thunk bind(const C* obj)
     {
-        return {make_thunk<decltype(obj)>(), (void*)obj};
+        return {make_thunk<decltype(obj)>(), obj};
     }
+
+protected:
+    template<typename... Args>
+    R call(Args&&... args) const
+    {
+        if constexpr (HERA_DEBUG) {
+            if (!bool(*this)) {
+                throw bad_thunk{};
+            }
+        }
+        return reinterpret_cast<fn_type>(fnptr)(iptr,
+                                                static_cast<Ts&&>(args)...);
+    }
+};
+
+template<typename>
+class signal;
+
+template<typename>
+class slot;
+
+template<typename R, typename... Ts>
+class slot<R(Ts...)> : public thunk<R(Ts...)> {
+public:
+    using thunk<R(Ts...)>::thunk;
+
+    slot() = delete;
+    slot(const slot&) = default;
+    slot& operator=(const slot&) = default;
+    slot(slot&&) = default;
+    slot& operator=(slot&&) = default;
 
     template<typename... Args>
     R operator()(Args&&... args) const
     {
-        return thunktion(instance, static_cast<Ts&&>(args)...);
+        const auto lk = lock();
+        return thunk<R(Ts...)>::call(std::forward<Args>(args)...);
     }
 
-    constexpr friend bool operator==(const thunk& lhs, const thunk& rhs)
+    bool expired() const
     {
-        return lhs.key == rhs.key;
+        for (const auto& p : trackers) {
+            if (p.expired())
+                return true;
+        }
+        return false;
     }
-    constexpr friend auto operator<=>(const thunk& lhs, const thunk& rhs)
+
+    slot& track(const weak_ptr<void>& p)
     {
-        return lhs.key <=> rhs.key;
+        trackers.push_back(p);
+        return *this;
     }
+
+    // adds another slot's tracking list to this one.
+    template<typename Q>
+    slot& track(const slot<Q>& other)
+    {
+        for (const auto& p : other.block->trackers) {
+            trackers.push_back(p);
+        }
+        return *this;
+    }
+
+    // tracks a signal
+    template<typename Q>
+    slot& track(const signal<Q>& other)
+    {
+        trackers.push_back(other.block);
+        return *this;
+    }
+
+private:
+    vector<shared_ptr<void>> lock() const
+    {
+        vector<shared_ptr<void>> objs(trackers.size());
+
+        for (const auto& t : trackers) {
+            if (auto p = t.lock()) {
+                objs.push_back(std::move(p));
+            }
+            else {
+                throw expired_slot{};
+            }
+        }
+        return objs;
+    }
+
+    vector<weak_ptr<void>> trackers;
 };
 
 class signal_block_base {
 public:
-    virtual void move_to(const void* from, void* to) = 0;
-    virtual void copy_to(const void* from, void* to) = 0;
-    virtual void do_disconnect(const void*) = 0;
+    virtual void do_disconnect(const thunk<>&) = 0;
+    virtual bool contains(const thunk<>&) = 0;
 
 protected:
     ~signal_block_base() {}
 };
 
-class Observer {
-    template<typename, typename>
+// represents the connection between a signal and slot.
+class connection {
+public:
+    constexpr connection() noexcept {};
+
+    bool connected() const
+    {
+        if (auto p = _sig.lock()) {
+            return p->contains(_tk);
+        }
+        else {
+            return false;
+        }
+    }
+    void disconnect() const
+    {
+        if (auto p = _sig.lock()) {
+            p->do_disconnect(_tk);
+        }
+    }
+
+    friend bool operator==(const connection& lhs, const connection& rhs)
+    {
+        return lhs._sig.lock() == rhs._sig.lock() && lhs._tk == rhs._tk;
+    }
+
+    friend bool operator!=(const connection& lhs, const connection& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bool operator<(const connection& lhs, const connection& rhs)
+    {
+        return std::owner_less<void>{}(lhs._sig, rhs._sig) && lhs._tk < rhs._tk;
+    }
+
+private:
+    template<typename>
     friend class signal;
 
-    struct connection {
-        void* iptr;
-        weak_ptr<signal_block_base> sigblock;
+    connection(const weak_ptr<signal_block_base>& p, const thunk<>& tk) noexcept
+        : _sig{p},
+          _tk{tk} {};
 
-        void retarget(Observer* from, Observer* to)
-        {
-            auto from_ptr = reinterpret_cast<uintptr_t>(from);
-            auto to_ptr = reinterpret_cast<uintptr_t>(to);
-            auto instance_ptr = reinterpret_cast<uintptr_t>(iptr);
+    weak_ptr<signal_block_base> _sig;
+    thunk<> _tk;
+};
 
-            auto diff = instance_ptr - from_ptr;
-
-            auto target = to_ptr + diff;
-
-            iptr = reinterpret_cast<void*>(target);
-        }
-    };
-
-    static constexpr auto conn_iptr = [](const connection& v) -> void* const& {
-        return v.iptr;
-    };
-
-    mutable vector<connection> signals;
-
-    template<typename Self>
-        requires(!same_as<Self, Observer>)
-    void add_connection(this Self& self, weak_ptr<signal_block_base> bptr)
+class scoped_connection : public connection {
+public:
+    scoped_connection() noexcept {};
+    scoped_connection& operator=(const scoped_connection& rhs) noexcept
     {
-        auto pos =
-            ranges::upper_bound(self.signals, (void*)&self, {}, conn_iptr);
-        self.signals.emplace(pos, &self, std::move(bptr));
-    }
-
-    auto equal_range(const void* value) const
-    {
-        return ranges::equal_range(signals, value, {}, conn_iptr);
-    }
-
-    template<typename Self>
-        requires(!same_as<Self, Observer>)
-    auto equal_this(this const Self& self)
-    {
-        return self.equal_range(&self);
-    }
-
-protected:
-    Observer() {};
-
-    ~Observer()
-    {
-        for (auto& [iptr, wptr] : signals) {
-            if (auto ptr = wptr.lock()) {
-                ptr->do_disconnect((const void*)iptr);
-            }
-        }
-    }
-
-    template<typename Self>
-    void copy_from(this Self& self, const Self& other)
-    {
-        auto to_copy = other.equal_this() | ranges::to<vector>();
-
-        for (auto& [iptr, wptr] : to_copy) {
-            iptr = &self;
-            if (auto ptr = wptr.lock()) {
-                ptr->copy_to(&other, &self);
-            }
-        }
-
-        auto pos =
-            ranges::upper_bound(self.signals, (void*)&self, {}, conn_iptr);
-        self.signals.insert_range(pos, to_copy);
-    }
-
-    Observer(Observer&& other) : signals{std::move(other.signals)}
-    {
-        for (auto& conn : signals) {
-            auto old_value = conn.iptr;
-            conn.retarget(&other, this);
-            if (auto ptr = conn.sigblock.lock()) {
-                ptr->move_to(old_value, conn.iptr);
-            }
-        }
-    }
-    Observer& operator=(Observer&& other)
-    {
-        Observer(std::move(other)).swap(*this);
+        disconnect();
+        connection::operator=(rhs);
         return *this;
     }
 
-    void swap(Observer& other) { signals.swap(other.signals); }
+    scoped_connection(scoped_connection&& other) noexcept
+        : connection(std::move(other)) {};
+
+    scoped_connection(connection&& other) noexcept
+        : connection(std::move(other)) {};
+
+    scoped_connection& operator=(scoped_connection&& other) noexcept
+    {
+        if (&other == this)
+            return *this;
+        disconnect();
+        connection::operator=(std::move(other));
+        return *this;
+    }
+    scoped_connection& operator=(connection&& other) noexcept
+    {
+        if (&other == this)
+            return *this;
+        disconnect();
+        connection::operator=(std::move(other));
+        return *this;
+    }
+
+    ~scoped_connection() { disconnect(); }
 };
-
-struct tester : Observer {
-    using Observer::copy_from;
-};
-
-inline void test()
-{
-    tester x;
-    tester y;
-
-    x.copy_from(y);
-}
 
 template<typename>
-class common_signal_block;
+class signal_block;
 
 template<typename R, typename... Ts>
-class common_signal_block<R(Ts...)> : public signal_block_base {
-    using thunk_type = thunk<R(Ts...)>;
+class signal_block<R(Ts...)> final : public signal_block_base {
+    template<typename>
+    friend class slot;
 
-protected:
+    using slot_type = slot<R(Ts...)>;
+
     mutable shared_mutex mtx;
-    vector<thunk<R(Ts...)>> slots;
-
-    static constexpr auto proj = [](const thunk_type& t) -> void* const& {
-        return t.instance;
-    };
+    vector<slot<R(Ts...)>> slots;
+    concurrent_queue<tuple<Ts...>> evqueue;
 
 public:
     template<typename... Args>
@@ -277,79 +393,6 @@ public:
             fn(std::forward<Args>(args)...);
         }
     }
-
-    template<typename Accumulate, typename... Args>
-    void fire_accumulate(Accumulate&& acc, Args&&... args) const
-    {
-        shared_lock lk{mtx};
-        for (auto& fn : slots) {
-            acc(fn(std::forward<Args>(args)...));
-        }
-    }
-
-    void do_connect(const thunk_type& tk)
-    {
-        scoped_lock lk{mtx};
-        slots.emplace(ranges::upper_bound(slots, tk), tk);
-    }
-
-    void do_disconnect(const void* ptr) final override
-    {
-        scoped_lock lk{mtx};
-        auto [b, e] = ranges::equal_range(slots, ptr, {}, proj);
-        slots.erase(b, e);
-    }
-
-    void do_disconnect(const thunk_type& tk)
-    {
-        scoped_lock lk{mtx};
-        auto [b, e] = ranges::equal_range(slots, tk);
-        slots.erase(b, e);
-    }
-
-    void move_to(const void* from, void* to) final override
-    {
-        scoped_lock lk{mtx};
-        auto [b, e] = ranges::equal_range(slots, from, {}, proj);
-
-        vector<thunk_type> to_insert{b, e};
-        for (auto& slot : to_insert) {
-            slot.instance = to;
-        }
-        slots.erase(b, e);
-        auto pos = ranges::upper_bound(slots, to_insert.front());
-        slots.insert_range(pos, to_insert);
-    }
-
-    void copy_to(const void* from, void* to) final override
-    {
-        scoped_lock lk{mtx};
-        auto to_insert =
-            ranges::equal_range(slots, from, {}, proj) | ranges::to<vector>();
-
-        for (auto& slot : to_insert) {
-            slot.instance = to;
-        }
-        auto pos = ranges::upper_bound(slots, to_insert.front());
-        slots.insert_range(pos, to_insert);
-    }
-};
-
-template<typename>
-class basic_signal_block;
-
-template<typename R, typename... Ts>
-class basic_signal_block<R(Ts...)> final
-    : public common_signal_block<R(Ts...)> {};
-
-template<typename>
-struct queue_signal_block;
-
-template<typename R, typename... Ts>
-    requires std::is_default_constructible_v<tuple<Ts...>>
-struct queue_signal_block<R(Ts...)> final
-    : public common_signal_block<R(Ts...)> {
-    concurrent_queue<tuple<Ts...>> evqueue;
 
     template<typename... Args>
     void do_post(Args&&... args)
@@ -379,14 +422,55 @@ struct queue_signal_block<R(Ts...)> final
             }
         }
     }
+
+    template<typename Accumulate, typename... Args>
+    void fire_accumulate(Accumulate&& acc, Args&&... args) const
+    {
+        shared_lock lk{mtx};
+        for (auto& fn : slots) {
+            acc(fn(std::forward<Args>(args)...));
+        }
+    }
+
+    void do_connect(const slot_type& slt)
+    {
+        scoped_lock lk{mtx};
+        slots.emplace(upper_bound(slots, slt), slt);
+    }
+
+    void do_connect(const thunk<>& tk)
+    {
+        scoped_lock lk{mtx};
+        slots.emplace(upper_bound(slots, tk), tk);
+    }
+
+    void do_disconnect(const void* ptr)
+    {
+        scoped_lock lk{mtx};
+        auto [b, e] = equal_range(slots, ptr, std::less{});
+        slots.erase(b, e);
+    }
+
+    void do_disconnect(const thunk<>& tk) final override
+    {
+        scoped_lock lk{mtx};
+        auto [b, e] = equal_range(slots, tk);
+        slots.erase(b, e);
+    }
+
+    bool contains(const thunk<>& tk) final override
+    {
+        shared_lock lk{mtx};
+        auto [b, e] = equal_range(slots, tk);
+        return b != e;
+    }
 };
 
-template<typename R, typename Block = basic_signal_block<R>>
-class signal;
-
-template<typename R, typename Block, typename... Ts>
-class signal<R(Ts...), Block> {
+template<typename R, typename... Ts>
+class signal<R(Ts...)> {
+    using slot_type = slot<R(Ts...)>;
     using thunk_type = thunk<R(Ts...)>;
+    using block_type = signal_block<R(Ts...)>;
 
 public:
     // immediate notification of all slots.
@@ -406,118 +490,118 @@ public:
 
     // post an event to the internal queue.
     template<typename... Args>
-        requires same_as<Block, queue_signal_block<R(Ts...)>>
     void post(Args&&... args)
     {
         block->do_post(std::forward<Args>(args)...);
     }
 
     // flush the event queue to all slots.
-    void flush()
-        requires same_as<Block, queue_signal_block<R(Ts...)>>
-    {
-        block->do_flush();
-    }
+    void flush() { block->do_flush(); }
 
     // flush the event queue to all slots and accumulate return values.
     template<typename Accumulate>
-        requires same_as<Block, queue_signal_block<R(Ts...)>>
     void flush(Accumulate&& acc)
     {
         block->do_flush_accumulate(std::forward<Accumulate>(acc));
     }
 
+    // connects an already constructed slot object.
+    connection connect(const slot_type& s)
+    {
+        block->do_connect(s);
+        return connection{block, s};
+    }
+
     // connects an object and member function
     template<auto mem_ptr, typename T>
         requires invocable_r<R, decltype(mem_ptr), T*, Ts...>
-    void connect(T* obj)
+    connection connect(T* obj)
     {
-        block->do_connect(thunk_type::template bind<mem_ptr>(obj));
-
-        if constexpr (std::derived_from<T, Observer>) {
-            obj->add_connection(block);
-        }
+        const auto tk = thunk_type::template bind<mem_ptr>(obj);
+        block->do_connect(tk);
+        return connection{block, tk};
     }
 
     // connects a const object and member function
     template<auto mem_ptr, typename T>
         requires invocable_r<R, decltype(mem_ptr), const T*, Ts...>
-    void connect(const T* obj)
+    connection connect(const T* obj)
     {
-        block->do_connect(thunk_type::template bind<mem_ptr>(obj));
-
-        if constexpr (std::derived_from<T, Observer>) {
-            obj->add_connection(block);
-        }
+        const auto tk = thunk_type::template bind<mem_ptr>(obj);
+        block->do_connect(tk);
+        return connection{block, tk};
     }
 
     // connects an object and member function
     template<typename T, R (T::*mem_ptr)(Ts...)>
-    void connect(T* obj)
+    connection connect(T* obj)
     {
-        connect<mem_ptr>(obj);
+        return connect<mem_ptr>(obj);
     }
     // connects an object and member function
     template<typename T, R (T::*mem_ptr)(Ts...) noexcept>
-    void connect(T* obj)
+    connection connect(T* obj)
     {
-        connect<mem_ptr>(obj);
+        return connect<mem_ptr>(obj);
     }
     // connects a const object and member function
     template<typename T, R (T::*mem_ptr)(Ts...) const>
-    void connect(const T* obj)
+    connection connect(const T* obj)
     {
-        connect<mem_ptr>(obj);
+        return connect<mem_ptr>(obj);
     }
     // connects a const object and member function
     template<typename T, R (T::*mem_ptr)(Ts...) const noexcept>
-    void connect(const T* obj)
+    connection connect(const T* obj)
     {
-        connect<mem_ptr>(obj);
+        return connect<mem_ptr>(obj);
     }
 
     // connects a function pointer
     template<R (*fun_ptr)(Ts...)>
-    void connect()
+    connection connect()
     {
-        block->do_connect(thunk_type::template bind<fun_ptr>());
+        const auto tk = thunk_type::template bind<fun_ptr>();
+        block->do_connect(tk);
+        return connection{block, tk};
     }
     // connects a function pointer
     template<R (*fun_ptr)(Ts...) noexcept>
-    void connect()
+    connection connect()
     {
-        block->do_connect(thunk_type::template bind<fun_ptr>());
+        const auto tk = thunk_type::template bind<fun_ptr>();
+        block->do_connect(tk);
+        return connection{block, tk};
     }
 
     // connects a callable object.
     template<typename C>
         requires invocable_r<R, C, Ts...>
-    void connect(C* callable)
+    connection connect(C* callable)
     {
-        block->do_connect(thunk_type::template bind<C>(callable));
-
-        if constexpr (std::derived_from<C, Observer>) {
-            callable->add_connection(block);
-        }
+        const auto tk = thunk_type::template bind<C>(callable);
+        block->do_connect(tk);
+        return connection{block, tk};
     }
     // connects a const callable object.
     template<typename C>
         requires invocable_r<R, const C, Ts...>
-    void connect(const C* callable)
+    connection connect(const C* callable)
     {
-        block->do_connect(thunk_type::template bind<C>(callable));
-
-        if constexpr (std::derived_from<C, Observer>) {
-            callable->add_connection(block);
-        }
+        const auto tk = thunk_type::template bind<C>(callable);
+        block->do_connect(tk);
+        return connection{block, tk};
     }
+
+    // disconnect a slot.
+    void disconnect(const slot_type& slt) { block->do_disconnect(slt); }
 
     // member function disconnect
     template<auto mem_ptr, typename T>
         requires invocable_r<R, decltype(mem_ptr), T*, Ts...>
     void disconnect(const T* obj)
     {
-        block->do_disconnect(thunk_type::template bind<mem_ptr>(obj));
+        block->do_disconnect(slot_type::template bind<mem_ptr>(obj));
     }
     // member function disconnect
     template<typename T, R (T::*mem_ptr)(Ts...)>
@@ -548,14 +632,14 @@ public:
     template<R (*fun_ptr)(Ts...)>
     void disconnect()
     {
-        block->do_disconnect(thunk_type::template bind<fun_ptr>());
+        block->do_disconnect(slot_type::template bind<fun_ptr>());
     }
 
     // function pointer disconnect.
     template<R (*fun_ptr)(Ts...) noexcept>
     void disconnect()
     {
-        block->do_disconnect(thunk_type::template bind<fun_ptr>());
+        block->do_disconnect(slot_type::template bind<fun_ptr>());
     }
 
     // disconnects a callable or all members of an instance
@@ -569,11 +653,8 @@ public:
     void disconnect_all() { block->slots.clear(); }
 
 private:
-    shared_ptr<Block> block = std::make_shared<Block>();
+    shared_ptr<block_type> block = std::make_shared<block_type>();
 };
-
-template<typename F>
-using qsignal = signal<F, queue_signal_block<F>>;
 
 } // namespace hera
 
