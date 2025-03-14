@@ -84,7 +84,7 @@ target_compile_definitions(hera PUBLIC DOCTEST_CONFIG_DISABLE)
 # target_link_libraries(hera_common INTERFACE ${HERA_LIBRARIES})
 # add_dependencies(hera_common INTERFACE ${HERA_DEPENDENCIES})
 
-target_compile_features(hera PUBLIC cxx_std_23 c_std_11)
+target_compile_features(hera PUBLIC cxx_std_26 c_std_11)
 
 target_include_directories(hera PUBLIC ${PROJECT_SOURCE_DIR})
 
