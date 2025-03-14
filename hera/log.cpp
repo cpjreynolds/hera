@@ -31,7 +31,7 @@ quill::Logger* global_log = nullptr;
 
 void init::logging()
 {
-    using quill::Backend, quill::Frontend;
+    using quill::Backend, quill::Frontend, quill::PatternFormatterOptions;
 
     Backend::start();
 
@@ -42,8 +42,8 @@ void init::logging()
     auto sink =
         Frontend::create_or_get_sink<quill::ConsoleSink>("console_sink_1");
 
-    global_log = Frontend::create_or_get_logger("root", std::move(sink),
-                                                pattern, timepat);
+    global_log = Frontend::create_or_get_logger(
+        "root", std::move(sink), PatternFormatterOptions{pattern, timepat});
 
     quill::detail::set_thread_name("main");
     global_log->set_log_level(LogLevel::Debug);
