@@ -34,6 +34,7 @@
 #include <ranges>
 #include <optional>
 #include <concepts>
+#include <type_traits>
 #include <variant>
 #include <set>
 #include <unordered_set>
@@ -67,22 +68,100 @@ namespace fmt = fmtquill;
 
 namespace hera {
 
-constexpr size_t binom(size_t n, size_t k) noexcept
-{
-    return (k > n) ? 0 : // out of range
-               (k == 0 || k == n) ? 1
-                                  : // edge
-               (k == 1 || k == n - 1) ? n
-                                      : // first
-               (k + k < n) ?            // recursive:
-               (binom(n - 1, k - 1) * n) / k
-                           :                    //  path to k=1   is faster
-               (binom(n - 1, k) * n) / (n - k); //  path to k=n-1 is faster
-}
+/*
+ * ==[[namespace imports]]==
+ */
+using namespace std::ranges;
+namespace ranges = std::ranges;
+namespace views = std::views;
+namespace fs = std::filesystem;
+namespace chrono = std::chrono;
+namespace numbers = std::numbers;
+
+/*
+ * ==[[stdlib]]==
+ */
+using fs::path;
+using std::array;
+using std::back_insert_iterator;
+using std::back_inserter;
+using std::bitset;
+using std::fstream;
+using std::function;
+using std::ifstream;
+using std::initializer_list;
+using std::ios_base;
+using std::iostream;
+using std::istream;
+using std::istringstream;
+using std::map;
+using std::multimap;
+using std::mutex;
+using std::nullopt;
+using std::nullptr_t;
+using std::ofstream;
+using std::optional;
+using std::ostream;
+using std::ostream_iterator;
+using std::ostreambuf_iterator;
+using std::ostringstream;
+using std::pair;
+using std::ptrdiff_t;
+using std::ratio;
+using std::scoped_lock;
+using std::set;
+using std::shared_lock;
+using std::shared_mutex;
+using std::shared_ptr;
+using std::size_t;
+using std::span;
+using std::stack;
+using std::string;
+using std::string_view;
+using std::stringstream;
+using std::swap;
+using std::tuple;
+using std::u32string;
+using std::u32string_view;
+using std::unique_lock;
+using std::unique_ptr;
+using std::unordered_map;
+using std::unordered_multimap;
+using std::unordered_multiset;
+using std::unordered_set;
+using std::variant;
+using std::vector;
+using std::weak_ptr;
+
+using std::string_literals::operator""s;
+using std::string_view_literals::operator""sv;
+
+// highest resolution steady clock type.
+using clock =
+    std::conditional_t<chrono::high_resolution_clock::is_steady,
+                       chrono::high_resolution_clock, chrono::steady_clock>;
+
+using chrono::duration;
+using chrono::duration_cast;
+
+using chrono::microseconds;
+using chrono::milliseconds;
+using chrono::seconds;
+
+using std::chrono_literals::operator""s;
+using std::chrono_literals::operator""ms;
+using std::chrono_literals::operator""us;
+using std::chrono_literals::operator""ns;
 
 using uint128_t = unsigned __int128;
 using int128_t = __int128;
 
+using std::bit_cast;
+using std::declval;
+
+/*
+ * ==[[GLM]]==
+ */
 using glm::ivec2;
 using glm::ivec3;
 using glm::ivec4;
@@ -104,22 +183,27 @@ using glm::vec2;
 using glm::vec3;
 using glm::vec4;
 
+/*
+ * ==[[oneTBB]]==
+ */
+using oneapi::tbb::concurrent_queue;
+
+/*
+ * ==[[concepts and traits]]==
+ */
 using std::convertible_to;
 using std::decay_t;
-using std::declval;
+using std::derived_from;
 using std::invocable;
 using std::remove_const_t;
 using std::remove_cv_t;
 using std::remove_cvref_t;
+using std::remove_pointer_t;
 using std::remove_reference_t;
 using std::same_as;
 
-using std::tuple_element;
-using std::tuple_element_t;
-using std::tuple_size;
-using std::tuple_size_v;
-
-using std::bit_cast;
+template<size_t I>
+using size_constant = std::integral_constant<size_t, I>;
 
 template<typename R, typename Fn, typename... Args>
 concept invocable_r = requires(Fn&& fn, Args&&... args) {
@@ -131,6 +215,14 @@ using like_t = decltype(std::forward_like<T>(declval<U>()));
 
 template<typename T, typename U>
 using copy_cv = remove_reference_t<like_t<T, U>>;
+
+/*
+ * ==[tuple concepts and traits]==
+ */
+using std::tuple_element;
+using std::tuple_element_t;
+using std::tuple_size;
+using std::tuple_size_v;
 
 template<typename T, size_t N>
 concept has_tuple_element = requires(T t) {
@@ -148,6 +240,25 @@ concept tuple_like = !std::is_reference_v<T> && requires {
 
 template<typename T>
 concept pair_like = tuple_like<T> && tuple_size_v<T> == 2;
+
+/*
+ * ==[[range concepts and type traits]]==
+ */
+using ranges::contiguous_range;
+using ranges::range;
+using ranges::range_value_t;
+using ranges::sized_range;
+using ranges::view;
+
+template<typename R>
+using range_v = ranges::range_value_t<R>;
+
+template<typename R, typename T>
+concept span_of =
+    contiguous_range<R> && sized_range<R> && same_as<range_value_t<R>, T>;
+
+template<typename R>
+concept spanner = contiguous_range<R> && sized_range<R>;
 
 template<typename T>
 struct element_type;
@@ -186,26 +297,6 @@ template<typename T, size_t N = lengthof(T{}), typename E = element_t<T>>
 concept array_like = same_as<element_t<T>, E> && lengthof(T{}) == N &&
                      !requires(T t) { t.resize(); };
 
-namespace ranges = std::ranges;
-namespace views = std::views;
-
-using ranges::contiguous_range;
-using ranges::range;
-using ranges::sized_range;
-using ranges::view;
-
-using ranges::range_value_t;
-
-template<typename R>
-using range_v = ranges::range_value_t<R>;
-
-template<typename R, typename T>
-concept span_of =
-    contiguous_range<R> && sized_range<R> && same_as<range_value_t<R>, T>;
-
-template<typename R>
-concept spanner = contiguous_range<R> && sized_range<R>;
-
 // size in bytes of any range that models `span_of`
 template<typename R, typename T = range_value_t<R>>
 constexpr size_t size_bytes(const R& r)
@@ -213,61 +304,11 @@ constexpr size_t size_bytes(const R& r)
     return ranges::size(r) * sizeof(T);
 }
 
-template<size_t I>
-using size_constant = std::integral_constant<size_t, I>;
+/*
+ * ==[[hash support]]==
+ */
 
-using std::tuple_element;
-using std::tuple_element_t;
-
-using std::shared_ptr;
-using std::unique_ptr;
-using std::weak_ptr;
-
-using std::nullptr_t;
-using std::ptrdiff_t;
-using std::size_t;
-
-using std::nullopt;
-using std::optional;
-using std::variant;
-
-using std::back_insert_iterator;
-using std::back_inserter;
-
-using std::function;
-
-using std::array;
-using std::bitset;
-using std::initializer_list;
-using std::map;
-using std::multimap;
-using std::pair;
-using std::set;
-using std::span;
-using std::stack;
-using std::string;
-using std::string_view;
-using std::tuple;
-using std::u32string;
-using std::u32string_view;
-using std::unordered_map;
-using std::unordered_multimap;
-using std::unordered_multiset;
-using std::unordered_set;
-using std::vector;
-
-using std::mutex;
-using std::shared_mutex;
-
-using std::scoped_lock;
-using std::shared_lock;
-using std::unique_lock;
-
-using oneapi::tbb::concurrent_queue;
-
-using std::string_literals::operator""s;
-using std::string_view_literals::operator""sv;
-
+// transparent hasher
 template<typename T>
 struct trans_hash : std::hash<T> {
     using is_transparent = void;
@@ -292,46 +333,11 @@ template<typename T, typename H = borrowed_type<T>,
          typename C = std::equal_to<>>
 using hash_multiset = unordered_multiset<T, trans_hash<H>, C>;
 
-using std::fstream;
-using std::ifstream;
-using std::ios_base;
-using std::iostream;
-using std::istream;
-using std::istringstream;
-using std::ofstream;
-using std::ostream;
-using std::ostringstream;
-using std::stringstream;
+/*
+ * ==[[bitfield support]]==
+ */
 
-using std::ostream_iterator;
-using std::ostreambuf_iterator;
-
-using std::swap;
-
-namespace fs = std::filesystem;
-using fs::path;
-
-using std::ratio;
-
-namespace chrono = std::chrono;
-using clock =
-    std::conditional_t<chrono::high_resolution_clock::is_steady,
-                       chrono::high_resolution_clock, chrono::steady_clock>;
-
-using chrono::duration;
-using chrono::duration_cast;
-
-using chrono::microseconds;
-using chrono::milliseconds;
-using chrono::seconds;
-
-using std::chrono_literals::operator""s;
-using std::chrono_literals::operator""ms;
-using std::chrono_literals::operator""us;
-using std::chrono_literals::operator""ns;
-
-namespace numbers = std::numbers;
-
+// specialize to enable bitfield operations
 template<typename T>
 struct enable_bitfield;
 
