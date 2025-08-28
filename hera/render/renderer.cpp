@@ -22,14 +22,13 @@
 
 namespace hera {
 
-Renderer::Renderer(const Config& config)
+Renderer::Renderer(const Config& config, Private)
     : _window{glfwGetCurrentContext()},
       projector{config}
 {
     LOG_DEBUG("init renderer");
     path shaderpath = config["shaders.path"];
     shaders.load(shaderpath);
-    input::actions.connect<&Renderer::on_action>(this);
     LOG_INFO("{}", fmt::to_string(*this));
     LOG_DEBUG("init renderer done");
 }

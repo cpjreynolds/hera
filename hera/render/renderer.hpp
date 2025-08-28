@@ -33,19 +33,28 @@ concept drawable =
     requires(T& obj, const gl::Pipeline& s, float a) { obj.draw(s, a); };
 
 class Renderer {
+private:
     GLFWwindow* _window;
 
+    struct Private {
+        explicit Private() = default;
+    };
+
 public:
+    Renderer(const Config&, Private);
+
     Scribe projector;
     gl::Shaders shaders;
 
-    Renderer(const Config&);
+    static shared_ptr<Renderer> create(const Config& cfg)
+    {
+        auto self = std::make_shared<Renderer>(cfg, Private{});
+        input::actions.connect<&Renderer::on_action>(self);
+        return self;
+    }
+
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
-
-    ~Renderer() { input::actions.disconnect(this); }
-
-    void init(const Config&);
 
     template<drawable T>
     void draw(T& obj, float alpha = 1.0)
@@ -103,7 +112,6 @@ public:
 
     void on_action(input_action);
 
-private:
     friend struct fmt::formatter<Renderer>;
 };
 

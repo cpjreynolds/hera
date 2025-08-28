@@ -61,7 +61,7 @@ void State::loop()
 // one update tick
 void State::do_update()
 {
-    camera.update();
+    camera->update();
     for (auto& cube : cubes) {
         cube.update();
     }
@@ -69,7 +69,7 @@ void State::do_update()
 
 void State::do_render()
 {
-    for (auto&& frame : renderer) {
+    for (auto&& frame : *renderer) {
         auto&& p = frame.pipeline("scene");
         light.load_into(p);
         const float delta = ticker.delta();
@@ -138,7 +138,7 @@ void State::prologue()
 
     do_input();
     gl::checkerror();
-    renderer.pipeline("scene");
+    renderer->pipeline("scene");
     gl::checkerror();
     ticker.prev = clock::now();
 }

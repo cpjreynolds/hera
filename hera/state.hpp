@@ -28,10 +28,16 @@
 
 namespace hera {
 
-struct State {
+class State {
+private:
+    struct Private {
+        explicit Private() = default;
+    };
+
+public:
     GLFWwindow* window;
     Config config;
-    Renderer renderer;
+    shared_ptr<Renderer> renderer = Renderer::create(config);
     Ticker ticker;
 
     long render_steps = 0;
@@ -55,19 +61,20 @@ struct State {
     vector<vec3> cube_pos;
 
     Light light;
-    Camera camera;
+    shared_ptr<Camera> camera = Camera::create();
 
-    State()
-        : window{glfwGetCurrentContext()},
-          renderer{config},
-          light{{0, 0, 0}}
+    State(Private) : window{glfwGetCurrentContext()}, light{{0, 0, 0}}
     {
         gl::checkerror();
-        camera.load_into(renderer.shaders);
-        input::actions.connect<&State::on_action>(this);
+        camera->load_into(renderer->shaders);
     };
 
-    ~State() { input::actions.disconnect(this); }
+    static shared_ptr<State> create()
+    {
+        auto self = std::make_shared<State>(Private{});
+        input::actions.connect<&State::on_action>(self);
+        return self;
+    }
 
     void on_action(input_action);
 

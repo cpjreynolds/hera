@@ -43,8 +43,8 @@ try
     init::gl();
     init::input();
 
-    State state;
-    state.run();
+    shared_ptr<State> state = State::create();
+    state->run();
 
     deinit::input();
     deinit::window();

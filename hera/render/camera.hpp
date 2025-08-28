@@ -60,21 +60,21 @@ class Camera {
     mat4 _proj;
     mat4 _ortho;
 
-public:
-    Camera() : matblock{"Matrices"}
-    {
-        input::actions.connect<&Camera::on_action>(this);
-        input::cursor.connect<&Camera::on_cursor>(this);
-        input::scroll.connect<&Camera::on_scroll>(this);
-        input::fbsize.connect<&Camera::on_fbsize>(this);
+    struct Private {
+        explicit Private() = default;
     };
 
-    ~Camera()
+public:
+    Camera(Private) : matblock{"Matrices"} {};
+
+    static shared_ptr<Camera> create()
     {
-        input::actions.disconnect(this);
-        input::cursor.disconnect(this);
-        input::scroll.disconnect(this);
-        input::fbsize.disconnect(this);
+        auto self = std::make_shared<Camera>(Private());
+        input::actions.connect<&Camera::on_action>(self);
+        input::cursor.connect<&Camera::on_cursor>(self);
+        input::scroll.connect<&Camera::on_scroll>(self);
+        input::fbsize.connect<&Camera::on_fbsize>(self);
+        return self;
     }
 
     void update();
