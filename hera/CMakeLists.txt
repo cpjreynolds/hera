@@ -1,7 +1,7 @@
 file(GLOB_RECURSE HERA_HEADERS CONFIGURE_DEPENDS *.hpp)
 file(GLOB_RECURSE HERA_SOURCES CONFIGURE_DEPENDS *.cpp)
 set(HERA_TESTS ${HERA_SOURCES})
-#list(FILTER PROJECT_TESTS EXCLUDE REGEX .*\/main.cpp)
+list(FILTER HERA_TESTS EXCLUDE REGEX .*\/main.cpp)
 
 # abstract dependencies
 set(HERA_DEPENDENCIES
@@ -23,11 +23,12 @@ set(HERA_LIBRARIES
     Lua::Lua
     sol2::sol2
     freetype
+    assimp
 )
 
 list(APPEND HERA_DEFINES
     GLFW_INCLUDE_NONE
-    QUILL_ROOT_LOGGER_ONLY
+QUILL_ROOT_LOGGER_ONLY
     SOL_ALL_SAFETIES_ON
     SOL_PRINT_ERRORS=0
     SOL_USING_CXX_LUA=0
@@ -35,31 +36,12 @@ list(APPEND HERA_DEFINES
     SOL_USING_CXX_LUAJIT=0
 )
 
-if (${CMAKE_CXX_BYTE_ORDER} STREQUAL "BIG_ENDIAN")
-    list(APPEND HERA_DEFINES HERA_BIG_ENDIAN)
-elseif(${CMAKE_CXX_BYTE_ORDER} STREQUAL "LITTLE_ENDIAN")
-    list(APPEND HERA_DEFINES HERA_LITTLE_ENDIAN)
-endif()
+define_endianness()
+define_system()
+make_option_defines()
 
 if (HERA_STACKTRACE)
     list(APPEND HERA_LIBRARIES cpptrace::cpptrace)
-endif()
-
-foreach(opt ${HERA_OPTIONS})
-    list(APPEND HERA_DEFINES ${opt}=$<BOOL:${${opt}}>)
-endforeach()
-
-# easier than relying on compiler-specific defines
-if(WIN32)
-    list(APPEND HERA_DEFINES WINDOWS)
-endif()
-
-if(UNIX)
-    list(APPEND HERA_DEFINES UNIX) # includes macos and cygwin
-endif()
-
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-    list(APPEND HERA_DEFINES DARWIN)
 endif()
 
 if(NOT MSVC AND NOT WIN32)
@@ -134,14 +116,7 @@ if(WIN32)
     )
 endif()
 
-# for ycm semantic completion support (debug is the most inclusive)
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    add_custom_command(
-        TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${PROJECT_BINARY_DIR}/compile_commands.json
-            ${PROJECT_SOURCE_DIR}/compile_commands.json
-        DEPENDS ${PROJECT_BINARY_DIR}/compile_commands.json)
-endif()
+# for ycm semantic completion support
+set_compile_commands_copy()
 
 

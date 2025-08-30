@@ -14,9 +14,9 @@ target_include_directories(stb INTERFACE stb)
 
 ### Libraries with CMakeLists
 
-set(SKIP_INSTALL_ALL CACHE BOOL "" FORCE)
-set(SKIP_INSTALL_LIBRARIES CACHE BOOL "" FORCE)
-set(SKIP_INSTALL_HEADERS CACHE BOOL "" FORCE)
+set(SKIP_INSTALL_ALL ON CACHE BOOL "" FORCE)
+set(SKIP_INSTALL_LIBRARIES ON CACHE BOOL "" FORCE)
+set(SKIP_INSTALL_HEADERS ON CACHE BOOL "" FORCE)
 add_subdirectory(freetype)
 target_compile_definitions(freetype PUBLIC FT_CONFIG_OPTION_ERROR_STRINGS)
 
@@ -81,3 +81,8 @@ list(APPEND CMAKE_MODULE_PATH
     "${CMAKE_CURRENT_SOURCE_DIR}/sol2/cmake/Packages"
     "${CMAKE_CURRENT_SOURCE_DIR}/sol2/cmake/Modules")
 find_package(LuaBuild REQUIRED COMPONENTS ${SOL2_LUA_VERSION})
+
+# ==[assimp]==
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+add_subdirectory(assimp)

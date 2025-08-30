@@ -13,13 +13,12 @@ include(GNUInstallDirs)
 # feature printing
 include(FeatureSummary)
 
-function(hera_option name desc value)
-    string(CONCAT opt_desc "enable " ${desc})
-    option(HERA_${name} ${opt_desc} ${value})
-    add_feature_info(${name} ${value} ${desc})
-    list(APPEND HERA_OPTIONS HERA_${name})
-    return(PROPAGATE HERA_OPTIONS)
-endfunction()
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(ProjectUtility)
+
+set_default_build()
+
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 
 # build process options
 option(HERA_INSTALL "enable install directives" ON)
@@ -58,36 +57,14 @@ if(HERA_CHECK_COPYRIGHT)
     )
 endif()
 
-if(HERA_DELETE_DS_STORE)
-    add_custom_target(delete_ds_store ALL
-        COMMAND /bin/bash
-            ${HERA_SCRIPT_DIR}/del_ds_store.sh
-            ${CMAKE_CURRENT_SOURCE_DIR}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMENT "deleting .DS_Store"
-        VERBATIM
-    )
-endif()
-
 set(BUILD_TESTING ${HERA_TEST})
 
 # nothing to test yet
-if(FALSE)
-if (PROJECT_IS_TOP_LEVEL)
-    # disables generation of all the CTest targets
-    set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1)
-    include(CTest)
-endif()
-endif()
-
-# set default build type
-if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
-    message(STATUS "Build type not set, default to Debug")
-    set(CMAKE_BUILD_TYPE Debug CACHE
-        STRING "Build type" FORCE)
-    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
-        "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
-endif()
+# if (PROJECT_IS_TOP_LEVEL)
+    # # disables generation of all the CTest targets
+    # set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1)
+    # include(CTest)
+# endif()
 
 # youcompleteme/clangd support
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
