@@ -19,8 +19,8 @@
 
 namespace hera::gl {
 
-Texture2d::Texture2d(const path& fpath, texture_u unit,
-                     const TextureParams& params)
+Texture2d::Texture2d(const path& fpath, const TextureParams& params,
+                     texture_u unit)
     : Texture{unit}
 {
     if (!fs::exists(fpath)) {

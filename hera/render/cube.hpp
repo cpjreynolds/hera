@@ -28,6 +28,7 @@
 #include <hera/gl/texture.hpp>
 #include <hera/gl/program.hpp>
 #include <hera/render/geometry.hpp>
+#include <hera/render/material.hpp>
 
 namespace hera {
 
@@ -36,8 +37,9 @@ class Cube : public Geometry {
     static constexpr float rotate_rate = 1.0 / 6;
     static constexpr float increment = tau * rotate_rate * tickrate();
 
-    gl::Texture2d diffuse;
-    gl::Texture2d specular;
+    gl::Texture2d diff;
+    gl::Texture2d spec;
+    float shine;
     vec3 _pos;
     vec3 _axis;
     float _angle;

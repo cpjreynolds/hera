@@ -14,28 +14,21 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef HERA_RENDER_MATERIAL_HPP
-#define HERA_RENDER_MATERIAL_HPP
-
-#include <hera/image.hpp>
-#include <hera/gl/texture.hpp>
-#include <hera/gl/program.hpp>
+#include <hera/render/material.hpp>
 
 namespace hera {
 
-struct Material {
-    gl::Texture2d diff;
-    gl::Texture2d spec;
-    float shine;
+void Material::upload(const gl::Pipeline& prog, int idx) const
+{
+    string uname{"material"};
 
-    Material(gl::Texture2d diff, gl::Texture2d spec, float shine)
-        : diff{std::move(diff)},
-          spec{std::move(spec)},
-          shine{shine} {};
+    if (idx != -1) {
+        uname += std::format("[{}]", idx);
+    }
 
-    void upload(const gl::Pipeline&, int idx = -1) const;
-};
+    prog.uniform(uname + ".diffuse", +diff.unit());
+    prog.uniform(uname + ".specular", +spec.unit());
+    prog.uniform(uname + ".shine", shine);
+}
 
 } // namespace hera
-
-#endif

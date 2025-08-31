@@ -54,7 +54,7 @@ struct Texture : object<id::texture(1)> {
 
     id::texture id() const { return get<texID>(); }
 
-    void unit(texture_u v) const { _unit = v; }
+    void unit(texture_u v) { _unit = v; }
     texture_u unit() const { return _unit; }
 
     void params(const TextureParams& params) const { params.apply(target); }
@@ -136,8 +136,8 @@ struct TextureArray : Texture<texture_t::array_2d> {
 };
 
 struct Texture2d : Texture<texture_t::twoD> {
-    Texture2d(const path& fpath, texture_u unit = 0,
-              const TextureParams& params = {});
+    Texture2d(const path& fpath, const TextureParams& params = {},
+              texture_u unit = 0);
 };
 
 } // namespace hera::gl

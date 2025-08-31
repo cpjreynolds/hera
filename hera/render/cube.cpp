@@ -76,8 +76,9 @@ struct gl::vertex<cube_vertex> : attributes<vec3, vec3, vec2> {};
 Cube::Cube(const path& diff, const path& spec, const vec3& pos,
            const vec3& axis, float offset)
     : Geometry{vertices},
-      diffuse{diff, 0, {.min_filter = GL_LINEAR_MIPMAP_LINEAR}},
-      specular{spec, 0, {.min_filter = GL_LINEAR_MIPMAP_LINEAR}},
+      diff{diff, {.min_filter = GL_LINEAR_MIPMAP_LINEAR}, 0},
+      spec{spec, {.min_filter = GL_LINEAR_MIPMAP_LINEAR}, 1},
+      shine{64},
       _pos{pos},
       _axis{axis},
       _angle{0},
@@ -85,11 +86,11 @@ Cube::Cube(const path& diff, const path& spec, const vec3& pos,
 
 void Cube::draw(const gl::Pipeline& shader, float alpha) const
 {
-    shader.uniform("a_texture", 0);
-    shader.uniform("spec_map", 1);
-
-    diffuse.bind(0);
-    specular.bind(1);
+    diff.bind(0);
+    spec.bind(1);
+    shader.uniform("t_diffuse", 0);
+    shader.uniform("t_specular", 1);
+    shader.uniform("shine", shine);
 
     Geometry::draw(shader, alpha);
 }
