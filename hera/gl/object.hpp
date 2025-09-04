@@ -187,7 +187,7 @@ inline void unbind(framebuffer_t tgt)
 // activates the texture unit.
 inline void bind(texture_u unit)
 {
-    glActiveTexture(+unit);
+    glActiveTexture(unit.offset());
 }
 // binds the vertex array object.
 inline void bind(id::varray v)

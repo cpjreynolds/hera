@@ -88,9 +88,12 @@ void Cube::draw(const gl::Pipeline& shader, float alpha) const
 {
     diff.bind(0);
     spec.bind(1);
-    shader.uniform("t_diffuse", 0);
-    shader.uniform("t_specular", 1);
+    shader.uniform("t_diffuse", diff.unit());
+    gl::checkerror();
+    shader.uniform("t_specular", spec.unit());
+    gl::checkerror();
     shader.uniform("shine", shine);
+    gl::checkerror();
 
     Geometry::draw(shader, alpha);
     gl::checkerror();

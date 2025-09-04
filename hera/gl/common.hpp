@@ -726,21 +726,21 @@ struct shader_t : gl_enum_t<shader_t> {
 
 // specifies a texture unit.
 struct texture_u : gl_enum_t<texture_u> {
-    enum class value_type : GLenum { zero = GL_TEXTURE0 };
-    using enum value_type;
-    constexpr texture_u() : gl_enum_t{zero} {};
+    enum class value_type : GLenum {};
+
     template<typename U>
         requires std::convertible_to<U, GLenum>
-    constexpr texture_u(U v) : gl_enum_t{+zero + static_cast<GLenum>(v)} {};
+    constexpr texture_u(U v) : gl_enum_t{make_valid(v)} {};
 
-    constexpr GLenum abs() const { return value - +zero; }
+    constexpr GLenum abs() const { return value; }
+    constexpr GLenum offset() const { return GL_TEXTURE0 + value; }
 
     constexpr string_view str() const
     {
-        auto& val = strnames[abs()];
+        auto& val = strnames[value];
         return val.data();
     }
-    constexpr bool valid() const { return abs() < 0xff; }
+    constexpr bool valid() const { return value < 0xff; }
 
 private:
     static constexpr auto strnames = [] consteval {
@@ -755,6 +755,18 @@ private:
         }
         return buf;
     }();
+
+    template<typename U>
+        requires std::convertible_to<U, GLenum>
+    static constexpr GLenum make_valid(U v)
+    {
+        if (v >= GL_TEXTURE0) {
+            return v - GL_TEXTURE0;
+        }
+        else {
+            return v;
+        }
+    }
 };
 
 enum class buffer_t : GLenum { HERA_GL_BUFFER_T(HERA_MAKE_ENUM) };
@@ -992,8 +1004,11 @@ checkerror(std::source_location loc = std::source_location::current())
         auto line = loc.line();
         while ((err = error_t{glGetError()}) != error_t::no_error) {
             LOG_ERROR("GL:{}:{}:{}:{}", gl_str(err), func, file, line);
-            throw gl_error{
-                fmt::format("GL:{}:{}:{}:{}", gl_str(err), func, file, line)};
+            /*
+             * throw gl_error{
+             *     fmt::format("GL:{}:{}:{}:{}", gl_str(err), func, file,
+             * line)};
+             */
         }
     }
 }
