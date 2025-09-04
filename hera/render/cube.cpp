@@ -93,6 +93,7 @@ void Cube::draw(const gl::Pipeline& shader, float alpha) const
     shader.uniform("shine", shine);
 
     Geometry::draw(shader, alpha);
+    gl::checkerror();
 }
 
 } // namespace hera

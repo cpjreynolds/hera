@@ -21,8 +21,11 @@ namespace hera {
 void Geometry::draw(const gl::Pipeline& shader, float alpha) const
 {
     auto model = interpolate(alpha);
+    gl::checkerror();
     shader.uniform("model", model);
+    gl::checkerror();
     _vbuf.draw();
+    gl::checkerror();
 }
 
 } // namespace hera

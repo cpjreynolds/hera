@@ -26,9 +26,10 @@ void Material::upload(const gl::Pipeline& prog, int idx) const
         uname += std::format("[{}]", idx);
     }
 
-    prog.uniform(uname + ".diffuse", +diff.unit());
-    prog.uniform(uname + ".specular", +spec.unit());
+    prog.uniform(uname + ".diff", static_cast<GLint>(+diff.unit()));
+    prog.uniform(uname + ".spec", static_cast<GLint>(+spec.unit()));
     prog.uniform(uname + ".shine", shine);
+    gl::checkerror();
 }
 
 } // namespace hera

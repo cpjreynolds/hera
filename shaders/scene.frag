@@ -3,6 +3,12 @@
 
 out vec4 frag_color;
 
+struct Material {
+    sampler2D diff;
+    sampler2D spec;
+    float shine;
+};
+
 in VERT_OUT
 {
     vec2 texcoord;
@@ -18,6 +24,8 @@ uniform vec3 light_pos;
 uniform sampler2D t_diffuse;
 uniform sampler2D t_specular;
 uniform float shine;
+
+// uniform Material material;
 
 void main()
 {
