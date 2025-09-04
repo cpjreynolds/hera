@@ -1049,78 +1049,89 @@ concept glsl_array =
 template<typename R>
 concept glsl_array = spanner<R> && glsl_type<range_v<R>>;
 
+template<typename T>
+concept glm_type = requires(const T& v) { glm::value_ptr(v); };
+
+template<typename T>
+struct uniform_traits;
+
+template<typename T>
+    requires glsl_type<T>
+struct uniform_traits<T> {
+    using value_type = decay_t<T>;
+    using storage_type = element_t<T>;
+
+    // Uniform variables other than arrays have size 1.
+    static constexpr GLint size(const T&) { return 1; }
+    static constexpr const storage_type* storage(const T& v)
+    {
+        if constexpr (gl_scalar<value_type>) {
+            return &v;
+        }
+        else if constexpr (glm_type<value_type>) {
+            return glm::value_ptr(v);
+        }
+        else {
+            static_assert(false, "bad type");
+        }
+    }
+};
+
+template<typename T>
+    requires glsl_array<T>
+struct uniform_traits<T> {
+    using value_type = ranges::range_value_t<T>;
+    using storage_type = element_t<value_type>;
+
+    // Size of a uniform variable. i.e. the number of uniforms in a variable.
+    static constexpr GLint size(const T& v) { return ranges::ssize(v); }
+
+    static constexpr const storage_type* storage(const T& v)
+    {
+        auto ptr = ranges::cbegin(v);
+        if constexpr (glm_type<value_type>) {
+            return glm::value_ptr(*ptr);
+        }
+        else {
+            return ptr;
+        }
+    }
+};
+
+template<>
+struct uniform_traits<texture_u> {
+    using value_type = GLint;
+    using storage_type = GLint;
+
+    static constexpr GLint size(const texture_u&) { return 1; }
+    static constexpr const GLint* storage(const texture_u& v)
+    {
+        return reinterpret_cast<const GLint*>(&v.value);
+    }
+};
+
 // any type able to be used as a uniform variable.
 template<typename T>
-concept uniformable = glsl_type<T> || glsl_array<T>;
-
-template<typename T>
-struct uniform_value;
-
-template<glsl_array T>
-struct uniform_value<T> {
-    using type = ranges::range_value_t<T>;
+concept uniformable = requires(const T& v) {
+    typename uniform_traits<T>::value_type;
+    typename uniform_traits<T>::storage_type;
+    { uniform_traits<T>::size(v) } -> same_as<GLint>;
+    {
+        uniform_traits<T>::storage(v)
+    } -> same_as<const typename uniform_traits<T>::storage_type*>;
 };
 
 template<typename T>
-    requires glsl_type<decay_t<T>>
-struct uniform_value<T> {
-    using type = decay_t<T>;
-};
-
-template<uniformable T>
-using uniform_value_t = uniform_value<T>::type;
-
-// Size of a uniform variable. i.e. the number of uniforms in a variable.
-//
-// Uniform variables other than arrays have size 1.
-template<glsl_type T>
-consteval GLint uniform_size()
-{
-    return 1;
-}
-
-// Size of a uniform variable. i.e. the number of uniforms in a variable.
-//
-// Uniform variables other than arrays have size 1.
-template<uniformable T>
 constexpr GLint uniform_size(const T& v)
 {
-    if constexpr (glsl_array<T>) {
-        return ranges::ssize(v);
-    }
-    else {
-        return uniform_size<T>();
-    }
+    return uniform_traits<T>::size(v);
 }
 
 // Returns a pointer to the storage of a uniformable variable.
-template<uniformable T>
-constexpr auto uniform_ptr(const T& v)
+template<typename T>
+constexpr auto uniform_storage(const T& v)
 {
-    if constexpr (gl_scalar<T>) {
-        return &v;
-    }
-    else if constexpr (requires { glm::value_ptr(v); }) {
-        return glm::value_ptr(v);
-    }
-    else {
-        return ranges::cbegin(v);
-    }
-}
-
-// Returns a pointer to the storage of a uniformable variable.
-template<uniformable T>
-constexpr auto uniform_ptr(T& v)
-{
-    if constexpr (gl_scalar<T>) {
-        return &v;
-    }
-    else if constexpr (requires { glm::value_ptr(v); }) {
-        return glm::value_ptr(v);
-    }
-    else {
-        return ranges::begin(v);
-    }
+    return uniform_traits<T>::storage(v);
 }
 
 // the std140 alignment requirement of a type.

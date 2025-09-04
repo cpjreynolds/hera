@@ -261,7 +261,9 @@ template<typename R>
 concept spanner = contiguous_range<R> && sized_range<R>;
 
 template<typename T>
-struct element_type;
+struct element_type {
+    using type = T;
+};
 
 template<typename T>
     requires std::is_array_v<T>

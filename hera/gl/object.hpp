@@ -384,10 +384,10 @@ template<typename T>
 void parameter(texture_t tgt, GLenum pname, const T& param)
 {
     if constexpr (gl_vector<T, 4, int>) {
-        glTexParameteriv(+tgt, pname, uniform_ptr(param));
+        glTexParameteriv(+tgt, pname, uniform_storage(param));
     }
     else if constexpr (gl_vector<T, 4, float>) {
-        glTexParameterfv(+tgt, pname, uniform_ptr(param));
+        glTexParameterfv(+tgt, pname, uniform_storage(param));
     }
     else if constexpr (std::integral<T>) {
         glTexParameteri(+tgt, pname, param);
@@ -409,12 +409,12 @@ T parameter(texture_t tgt, GLenum pname)
 {
     if constexpr (gl_vector<T, 4, int>) {
         T param;
-        glGetTexParameteriv(+tgt, pname, uniform_ptr(param));
+        glGetTexParameteriv(+tgt, pname, uniform_storage(param));
         return param;
     }
     else if constexpr (gl_vector<T, 4, float>) {
         T param;
-        glGetTexParameterfv(+tgt, pname, uniform_ptr(param));
+        glGetTexParameterfv(+tgt, pname, uniform_storage(param));
         return param;
     }
     else if constexpr (std::integral<T>) {
@@ -756,10 +756,9 @@ inline void draw(primitive_t mode, GLsizei count, gl_t type, size_t offset = 0)
 template<uniformable U>
 void uniform(id::program p, GLint loc, const U& v)
 {
-    using T = uniform_value_t<U>;
-    using glm::value_ptr;
-    auto ptr = uniform_ptr(v);
-    auto size = uniform_size(v);
+    using T = uniform_traits<U>::value_type;
+    auto ptr = uniform_traits<U>::storage(v);
+    auto size = uniform_traits<U>::size(v);
     if constexpr (same_as<T, float>) {
         glProgramUniform1fv(p, loc, size, ptr);
     }

@@ -58,12 +58,13 @@ public:
     explicit operator bool() const { return !is_null(); }
 
     template<uniformable T>
-    optional<int> has_uniform(string_view name) const
+    optional<int> has_uniform(string_view name, const T& v) const
     {
+        using value_type = uniform_traits<T>::value_type;
         if (auto it = _uniforms.find(name); it != _uniforms.cend()) {
             auto&& [loc, type, size] = it->second;
-            if (compatible_uniform(type, gl_typeof<T>()) &&
-                size == uniform_size<T>() && loc != -1) {
+            if (compatible_uniform(type, gl_typeof<value_type>()) &&
+                size == uniform_size(v) && loc != -1) {
                 return loc;
             }
         }
@@ -73,7 +74,7 @@ public:
     template<uniformable T>
     void uniform(string_view name, const T& v) const
     {
-        if (auto loc = has_uniform<T>(name); loc) {
+        if (auto loc = has_uniform<T>(name, v); loc) {
             gl::uniform(id(), *loc, v);
         }
         else {
@@ -149,10 +150,10 @@ public:
     template<uniformable T>
     void uniform(string_view name, const T& v) const
     {
-        if (auto loc = _vert.has_uniform<T>(name); loc) {
+        if (auto loc = _vert.has_uniform<T>(name, v); loc) {
             _vert.uniform(*loc, v);
         }
-        if (auto loc = _frag.has_uniform<T>(name); loc) {
+        if (auto loc = _frag.has_uniform<T>(name, v); loc) {
             _frag.uniform(*loc, v);
         }
     }
