@@ -26,7 +26,6 @@
 namespace hera::gl {
 
 class Shader : private object<id::program(1)> {
-    inline static hash_set<string> _missing;
     static constexpr id::program pID{0};
     path _fpath;
     string _fname;
@@ -72,18 +71,14 @@ public:
     }
 
     template<uniformable T>
-    void uniform(string_view name, const T& v) const
+    bool uniform(string_view name, const T& v) const
     {
         if (auto loc = has_uniform<T>(name, v); loc) {
             gl::uniform(id(), *loc, v);
+            return true;
         }
         else {
-            auto&& [_, first_miss] = _missing.emplace(
-                fmt::format("{} {}:{}", type_of<T>(), filename(), name));
-            if (first_miss) {
-                LOG_ERROR("uniform doesn't exist: {} {}:{}", type_of<T>(),
-                          filename(), name);
-            }
+            return false;
         }
     }
 
@@ -123,6 +118,7 @@ private:
 };
 
 class Pipeline : private object<id::pipeline(1)> {
+    inline static hash_set<string> _missing;
     static constexpr id::pipeline pipeID{0};
     string _name;
     Shader _vert = Shader::null;
@@ -148,13 +144,24 @@ public:
     string_view name() const { return _name; }
 
     template<uniformable T>
-    void uniform(string_view name, const T& v) const
+    void uniform(string_view uname, const T& v) const
     {
-        if (auto loc = _vert.has_uniform<T>(name, v); loc) {
+        bool hit = false;
+        if (auto loc = _vert.has_uniform<T>(uname, v); loc) {
+            hit = true;
             _vert.uniform(*loc, v);
         }
-        if (auto loc = _frag.has_uniform<T>(name, v); loc) {
+        if (auto loc = _frag.has_uniform<T>(uname, v); loc) {
+            hit = true;
             _frag.uniform(*loc, v);
+        }
+        if (!hit) {
+            auto&& [_, first_miss] = _missing.emplace(
+                fmt::format("{} {}:{}", type_of<T>(), name(), uname));
+            if (first_miss) {
+                LOG_ERROR("uniform doesn't exist: {} {}:{}", type_of<T>(),
+                          name(), uname);
+            }
         }
     }
 
@@ -365,8 +372,8 @@ public:
 
     // Loads all shaders in a directory.
     //
-    // shader files which share a filename stem are considered a "module" and
-    // will be linked together into a pipeline of the same name.
+    // shader files which share a filename stem are considered a "module"
+    // and will be linked together into a pipeline of the same name.
     void load(const path&);
 
     // links the shaders of module `name` into a program.
