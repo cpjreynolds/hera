@@ -78,9 +78,9 @@ public:
         }
         else {
             auto&& [_, first_miss] = _missing.emplace(
-                fmt::format("{} {}:{}", gl_typestr<T>(), filename(), name));
+                fmt::format("{} {}:{}", type_of<T>(), filename(), name));
             if (first_miss) {
-                LOG_ERROR("uniform doesn't exist: {} {}:{}", gl_typestr<T>(),
+                LOG_ERROR("uniform doesn't exist: {} {}:{}", type_of<T>(),
                           filename(), name);
             }
         }
