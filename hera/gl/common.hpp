@@ -738,7 +738,7 @@ struct texture_u : gl_enum_t<texture_u> {
     constexpr string_view str() const
     {
         auto& val = strnames[abs()];
-        return {val.begin(), val.end()};
+        return val.data();
     }
     constexpr bool valid() const { return abs() < 0xff; }
 
@@ -992,6 +992,8 @@ checkerror(std::source_location loc = std::source_location::current())
         auto line = loc.line();
         while ((err = error_t{glGetError()}) != error_t::no_error) {
             LOG_ERROR("GL:{}:{}:{}:{}", gl_str(err), func, file, line);
+            throw gl_error{
+                fmt::format("GL:{}:{}:{}:{}", gl_str(err), func, file, line)};
         }
     }
 }
