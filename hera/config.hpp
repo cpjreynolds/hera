@@ -34,9 +34,7 @@ private:
     const table_t& _table;
 
     struct node_wrap {
-        template<typename T>
-        node_wrap(T&& data) : _data{std::forward<T>(data)} {};
-
+        node_wrap(toml::node_view<const toml::node> n) : _data{n} {};
         operator const toml::table&() const
         {
             if (auto tbl = _data.as_table(); tbl) {

@@ -314,7 +314,7 @@ public:
         sizeof(value_str) / sizeof(value_str[0]);
     static_assert(std::bit_width(value_max) < sizeof(value) * 8);
 
-    static span<const pair<key_event, input_action>, value_max * 2> defaults()
+    static span<const pair<key_event, input_action>, value_max * 2uz> defaults()
     {
         static const pair<key_event, input_action> _default_actions[] = {
             HERA_INPUT_ACTIONS(MAKE_DEFAULTS)};
@@ -323,7 +323,7 @@ public:
 
 private:
     // (pressed, released) pairs of all actions excluding `none`
-    static const array<input_action, value_max * 2> actions;
+    static const array<input_action, value_max * 2uz> actions;
 
     static constexpr value from_str(string_view v)
     {

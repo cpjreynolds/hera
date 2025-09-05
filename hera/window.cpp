@@ -42,11 +42,11 @@ void log_window_info(GLFWwindow* window)
     int xdpmm = mode->width / mm_wide;
     int ydpmm = mode->height / mm_high;
 
-    int xdpi = (127 * xdpmm) / 5;
-    int ydpi = (127 * ydpmm) / 5;
+    long xdpi = (127 * xdpmm) / 5;
+    long ydpi = (127 * ydpmm) / 5;
 
-    xdpi = float(xdpi) * xscale;
-    ydpi = float(ydpi) * yscale;
+    xdpi = std::lrint(float(xdpi) * xscale);
+    ydpi = std::lrint(float(ydpi) * yscale);
 
     LOG_INFO("{:15} {}", "monitor name:", glfwGetMonitorName(monitor));
     LOG_INFO("{:15} {} Hz", "refresh rate:", mode->refreshRate);

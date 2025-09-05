@@ -23,7 +23,7 @@
 #include <hera/utility.hpp>
 #include <hera/log.hpp>
 #include <hera/error.hpp>
-
+// NOLINTBEGIN(bugprone-macro-*,performance-enum-size)
 namespace hera {
 namespace gl {
 
@@ -503,6 +503,8 @@ namespace {
 #define HERA_MAKE_STRS_V_IMPL(TYNAME, TYENUM)                                  \
     switch (value) {                                                           \
         TYENUM(HERA_MAKE_STR_VCASE)                                            \
+    default:                                                                   \
+        return "unknown";                                                      \
     }
 
 #define HERA_MAKE_STRS_V(ENUMS) ENUMS(HERA_MAKE_STRS_V_IMPL) return "unknown";
@@ -534,14 +536,17 @@ constexpr auto operator+(const T& v)
 }
 
 // gl constants made more type-safe
-template<typename T>
+template<typename T, typename Storage = GLenum>
 struct gl_enum_t {
-    GLenum value;
+    Storage value;
 
+private:
     constexpr gl_enum_t() : value{0} {}
+
+public:
     template<typename U>
-        requires std::convertible_to<U, GLenum>
-    constexpr gl_enum_t(U v) : value{static_cast<GLenum>(v)}
+        requires std::convertible_to<U, Storage>
+    constexpr gl_enum_t(U v) : value{static_cast<Storage>(v)}
     {
         if constexpr (HERA_DEBUG) {
             if (!static_cast<T*>(this)->valid()) {
@@ -553,7 +558,7 @@ struct gl_enum_t {
 
     template<typename U>
         requires same_as<U, typename T::value_type>
-    constexpr gl_enum_t(U v) : value{static_cast<GLenum>(v)} {};
+    constexpr gl_enum_t(U v) : value{static_cast<Storage>(v)} {};
 
     template<typename U>
         requires(requires {
@@ -582,8 +587,9 @@ struct gl_enum_t {
     constexpr operator auto() const { return typename T::value_type{value}; }
     explicit constexpr operator bool() const { return value != 0; }
 
-    explicit constexpr operator GLenum() const { return value; }
-    constexpr GLenum operator+() const { return value; }
+    explicit constexpr operator Storage() const { return value; }
+    constexpr Storage operator+() const { return value; }
+    friend T;
 };
 
 // specifies any concrete opengl type
@@ -593,30 +599,7 @@ struct gl_t : gl_enum_t<gl_t> {
     using gl_enum_t::gl_enum_t;
     using typespec = void;
     constexpr bool valid() const { HERA_MAKE_VALID_V(HERA_GL_T) }
-    constexpr string_view str() const
-    {
-        switch (value) {
-        case GL_BYTE:
-            return "byte";
-        case GL_UNSIGNED_BYTE:
-            return "ubyte";
-        case GL_SHORT:
-            return "short";
-        case GL_UNSIGNED_SHORT:
-            return "ushort";
-        case GL_INT:
-            return "int";
-        case GL_UNSIGNED_INT:
-            return "uint";
-        case GL_HALF_FLOAT:
-            return "half";
-        case GL_FLOAT:
-            return "float";
-        case GL_DOUBLE:
-            return "double";
-        }
-        HERA_MAKE_STR(HERA_GL_T)
-    }
+    constexpr string_view str() const { HERA_MAKE_STR(HERA_GL_T) }
 };
 
 // specifies any glsl type.
@@ -626,30 +609,7 @@ struct glsl_t : gl_enum_t<glsl_t> {
     using gl_enum_t::gl_enum_t;
     using typespec = void;
     constexpr bool valid() const { HERA_MAKE_VALID_V(HERA_GLSL_T) }
-    constexpr string_view str() const
-    {
-        switch (value) {
-        case GL_BYTE:
-            return "byte";
-        case GL_UNSIGNED_BYTE:
-            return "ubyte";
-        case GL_SHORT:
-            return "short";
-        case GL_UNSIGNED_SHORT:
-            return "ushort";
-        case GL_INT:
-            return "int";
-        case GL_UNSIGNED_INT:
-            return "uint";
-        case GL_HALF_FLOAT:
-            return "half";
-        case GL_FLOAT:
-            return "float";
-        case GL_DOUBLE:
-            return "double";
-        }
-        HERA_MAKE_STR(HERA_GLSL_T)
-    }
+    constexpr string_view str() const { HERA_MAKE_STR(HERA_GLSL_T) }
 };
 
 // specifies the data type of pixels.
@@ -659,28 +619,17 @@ struct pixel_t : gl_enum_t<pixel_t> {
     using gl_enum_t::gl_enum_t;
     using typespec = void;
     constexpr bool valid() const { HERA_MAKE_VALID_V(HERA_GL_PIXEL_T) }
-    constexpr string_view str() const
-    {
-        switch (value) {
-        case GL_BYTE:
-            return "byte";
-        case GL_UNSIGNED_BYTE:
-            return "ubyte";
-        case GL_SHORT:
-            return "short";
-        case GL_UNSIGNED_SHORT:
-            return "ushort";
-        case GL_INT:
-            return "int";
-        case GL_UNSIGNED_INT:
-            return "uint";
-        case GL_HALF_FLOAT:
-            return "half";
-        case GL_FLOAT:
-            return "float";
-        }
-        HERA_MAKE_STR(HERA_GL_PIXEL_T)
-    }
+    constexpr string_view str() const { HERA_MAKE_STR(HERA_GL_PIXEL_T) }
+};
+
+// specifies the internal format of a texture.
+struct internal_f : gl_enum_t<internal_f, GLint> {
+    enum class value_type : GLint { HERA_GL_INTERNAL_F(HERA_MAKE_ENUM) };
+    using enum value_type;
+    using gl_enum_t::gl_enum_t;
+    using typespec = void;
+    constexpr bool valid() const { HERA_MAKE_VALID_V(HERA_GL_INTERNAL_F) }
+    constexpr string_view str() const { HERA_MAKE_STR(HERA_GL_INTERNAL_F) }
 };
 
 // specifies the format of pixels.
@@ -689,18 +638,9 @@ struct pixel_f : gl_enum_t<pixel_f> {
     using enum value_type;
     using gl_enum_t::gl_enum_t;
     using typespec = void;
+    constexpr pixel_f(internal_f v) : gl_enum_t{v.value} {}
     constexpr bool valid() const { HERA_MAKE_VALID_V(HERA_GL_PIXEL_F) }
     constexpr string_view str() const { HERA_MAKE_STR(HERA_GL_PIXEL_F) }
-};
-
-// specifies the internal format of a texture.
-struct internal_f : gl_enum_t<internal_f> {
-    enum class value_type : GLenum { HERA_GL_INTERNAL_F(HERA_MAKE_ENUM) };
-    using enum value_type;
-    using gl_enum_t::gl_enum_t;
-    using typespec = void;
-    constexpr bool valid() const { HERA_MAKE_VALID_V(HERA_GL_INTERNAL_F) }
-    constexpr string_view str() const { HERA_MAKE_STR(HERA_GL_INTERNAL_F) }
 };
 
 // specifies a shader type.
@@ -725,14 +665,13 @@ struct shader_t : gl_enum_t<shader_t> {
 };
 
 // specifies a texture unit.
-struct texture_u : gl_enum_t<texture_u> {
-    enum class value_type : GLenum {};
+struct texture_u : gl_enum_t<texture_u, GLint> {
+    enum class value_type : GLint {};
 
     template<typename U>
-        requires std::convertible_to<U, GLenum>
+        requires std::convertible_to<U, GLint>
     constexpr texture_u(U v) : gl_enum_t{make_valid(v)} {};
 
-    constexpr GLenum abs() const { return value; }
     constexpr GLenum offset() const { return GL_TEXTURE0 + value; }
 
     constexpr string_view str() const
@@ -757,7 +696,7 @@ private:
     }();
 
     template<typename U>
-        requires std::convertible_to<U, GLenum>
+        requires std::convertible_to<U, GLint>
     static constexpr GLenum make_valid(U v)
     {
         if (v >= GL_TEXTURE0) {
@@ -782,8 +721,10 @@ template<typename T>
 struct gl_bitfield_t {
     GLbitfield value;
 
+private:
     constexpr gl_bitfield_t() : value{0} {}
 
+public:
     template<typename U>
         requires std::convertible_to<U, GLbitfield>
     constexpr gl_bitfield_t(U v) : value{static_cast<GLbitfield>(v)}
@@ -843,6 +784,7 @@ struct gl_bitfield_t {
 
     explicit constexpr operator GLbitfield() const { return value; }
     constexpr GLbitfield operator+() const { return value; }
+    friend T;
 };
 
 struct map_flag : gl_bitfield_t<map_flag> {
@@ -1121,7 +1063,7 @@ struct uniform_traits<texture_u> {
     static constexpr GLint size(const texture_u&) { return 1; }
     static constexpr const GLint* storage(const texture_u& v)
     {
-        return reinterpret_cast<const GLint*>(&v.value);
+        return &v.value;
     }
 };
 
@@ -1529,44 +1471,44 @@ constexpr size_t gl_sizeof(GLenum ty)
     switch (ty) {
     case GL_BYTE:
     case GL_UNSIGNED_BYTE:
-        return 1;
+        return 1uz;
     case GL_SHORT:
     case GL_UNSIGNED_SHORT:
-        return 2;
+        return 2uz;
     case GL_INT:
     case GL_UNSIGNED_INT:
     case GL_FLOAT:
-        return 4;
+        return 4uz;
     case GL_FLOAT_VEC2:
     case GL_UNSIGNED_INT_VEC2:
     case GL_INT_VEC2:
-        return 4 * 2;
+        return 4uz * 2;
     case GL_FLOAT_VEC3:
     case GL_INT_VEC3:
     case GL_UNSIGNED_INT_VEC3:
-        return 4 * 3;
+        return 4uz * 3;
     case GL_FLOAT_VEC4:
     case GL_INT_VEC4:
     case GL_UNSIGNED_INT_VEC4:
-        return 4 * 4;
+        return 4uz * 4;
     case GL_FLOAT_MAT2:
-        return 2 * 2 * 4;
+        return 2uz * 2 * 4;
     case GL_FLOAT_MAT3:
-        return 3 * 3 * 4;
+        return 3uz * 3 * 4;
     case GL_FLOAT_MAT4:
-        return 4 * 4 * 4;
+        return 4uz * 4 * 4;
     case GL_FLOAT_MAT2x3:
-        return 2 * 3 * 4;
+        return 2uz * 3 * 4;
     case GL_FLOAT_MAT2x4:
-        return 2 * 4 * 4;
+        return 2uz * 4 * 4;
     case GL_FLOAT_MAT3x2:
-        return 3 * 2 * 4;
+        return 3uz * 2 * 4;
     case GL_FLOAT_MAT3x4:
-        return 3 * 4 * 4;
+        return 3uz * 4 * 4;
     case GL_FLOAT_MAT4x2:
-        return 4 * 2 * 4;
+        return 4uz * 2 * 4;
     case GL_FLOAT_MAT4x3:
-        return 4 * 3 * 4;
+        return 4uz * 3 * 4;
         // just in case
     case GL_INVALID_VALUE:
     case GL_INVALID_ENUM:
@@ -1762,3 +1704,4 @@ struct fmt::formatter<hera::gl::texture_u> : formatter<string_view> {
 #undef HERA_GL_PRIMITIVE_T
 
 #endif
+// NOLINTEND(bugprone-macro-*,performance-enum-size)

@@ -29,8 +29,9 @@ image_data load_image(const path& pat)
     if (!data) {
         throw hera::runtime_error("stbi error: "s + stbi_failure_reason());
     }
-    return {unique_ptr<unsigned char, decltype(&free)>{data, &free}, size,
-            channels};
+    return {.buf = unique_ptr<unsigned char, decltype(&free)>{data, &free},
+            .size = size,
+            .channels = channels};
 }
 
 image_data load_image(const unsigned char* buf, int len)
@@ -41,8 +42,9 @@ image_data load_image(const unsigned char* buf, int len)
     if (!data) {
         throw hera::runtime_error("stbi error: "s + stbi_failure_reason());
     }
-    return {unique_ptr<unsigned char, decltype(&free)>{data, &free}, size,
-            channels};
+    return {.buf = unique_ptr<unsigned char, decltype(&free)>{data, &free},
+            .size = size,
+            .channels = channels};
 }
 
 } // namespace hera

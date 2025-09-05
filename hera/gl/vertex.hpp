@@ -145,7 +145,7 @@ constexpr std::tuple_element_t<I, T>& get(T& v)
 {
     using type = std::tuple_element_t<I, T>;
     auto offbytes = detail::attr_offset_v<I, typename vertex<T>::type>;
-    std::byte* base = reinterpret_cast<std::byte*>(&v);
+    auto base = reinterpret_cast<std::byte*>(&v);
     return reinterpret_cast<type&>(*(base + offbytes));
 }
 
@@ -155,7 +155,7 @@ constexpr std::tuple_element_t<I, T> const& get(const T& v)
 {
     using type = std::tuple_element_t<I, T>;
     auto offbytes = detail::attr_offset_v<I, typename vertex<T>::type>;
-    const std::byte* base = reinterpret_cast<const std::byte*>(&v);
+    auto base = reinterpret_cast<const std::byte*>(&v);
     return reinterpret_cast<const type&>(*(base + offbytes));
 }
 

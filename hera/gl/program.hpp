@@ -22,6 +22,7 @@
 #include <hera/format.hpp>
 #include <hera/gl/common.hpp>
 #include <hera/gl/object.hpp>
+#include <utility>
 
 namespace hera::gl {
 
@@ -39,7 +40,7 @@ class Shader : private object<id::program(1)> {
     explicit Shader(nullptr_t) : object{nullptr} {}
 
 public:
-    explicit Shader(const path& pat);
+    explicit Shader(path pat);
 
     static const Shader null;
 
@@ -88,8 +89,8 @@ public:
         gl::uniform(id(), loc, v);
     }
 
-    friend void swap(Shader& l, Shader& r) { l.swap(r); }
-    void swap(Shader& other)
+    friend void swap(Shader& l, Shader& r) noexcept { l.swap(r); }
+    void swap(Shader& other) noexcept
     {
         object::swap(other);
         std::swap(_fpath, other._fpath);
@@ -127,10 +128,10 @@ class Pipeline : private object<id::pipeline(1)> {
 public:
     explicit Pipeline(nullptr_t) : object{nullptr}, _name{"null"} {};
     explicit Pipeline(string_view name) : _name{name} {};
-    Pipeline(string_view name, const Shader& v, const Shader& f)
+    Pipeline(string_view name, Shader v, Shader f)
         : _name{name},
-          _vert{v},
-          _frag{f} {};
+          _vert{std::move(v)},
+          _frag{std::move(f)} {};
 
     static const Pipeline null;
 
@@ -363,7 +364,7 @@ class Shaders {
     friend struct fmt::formatter<Shaders>;
 
 public:
-    Shaders() {};
+    Shaders() = default;
     Shaders(const Shaders&) = delete;
     Shaders& operator=(const Shaders&) = delete;
 

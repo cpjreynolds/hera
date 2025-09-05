@@ -33,7 +33,7 @@ public:
     constexpr id::buffer vbo() const { return get<vboID>(); }
     constexpr id::buffer ebo() const { return get<eboID>(); }
 
-    VertexBuffer() {};
+    VertexBuffer() = default;
 
     template<spanner R>
         requires is_vertex<range_v<R>>

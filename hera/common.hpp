@@ -346,7 +346,7 @@ struct enable_bitfield;
 template<typename T>
 concept bitfield = requires {
     typename enable_bitfield<T>::value;
-    typename std::underlying_type<T>::type;
+    typename std::underlying_type_t<T>;
 };
 
 template<bitfield T>

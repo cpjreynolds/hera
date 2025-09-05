@@ -21,6 +21,7 @@
 #include <hera/log.hpp>
 #include <hera/utility.hpp>
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-*)
 namespace hera {
 
 class expired_slot : public hera::runtime_error {
@@ -46,6 +47,7 @@ struct thunk;
  * Type-erased thunk.
  */
 template<>
+// NOLINTBEGIN(cppcoreguidelines-*,modernize-*)
 struct thunk<void> {
 #if defined(HERA_LITTLE_ENDIAN)
     union {
@@ -115,6 +117,7 @@ struct thunk<void> {
     {
         return lhs.iptr == rhs;
     }
+    // NOLINTEND(cppcoreguidelines-*,modernize-*)
 };
 
 /*
@@ -298,13 +301,13 @@ public:
     virtual void add_tracker(const thunk<>&, const weak_ptr<void>&) = 0;
 
 protected:
-    ~signal_block_base() {}
+    ~signal_block_base() = default;
 };
 
 // represents the connection between a signal and slot.
 class connection {
 public:
-    constexpr connection() noexcept {};
+    constexpr connection() noexcept = default;
 
     bool connected() const
     {
@@ -352,7 +355,7 @@ private:
 
 class scoped_connection : public connection {
 public:
-    scoped_connection() noexcept {};
+    scoped_connection() noexcept = default;
     scoped_connection& operator=(const scoped_connection& rhs) noexcept
     {
         disconnect();
@@ -556,21 +559,21 @@ public:
         slots.erase(b, e);
     }
 
-    void do_disconnect(const thunk<>& tk) final override
+    void do_disconnect(const thunk<>& tk) final
     {
         scoped_lock lk{mtx};
         auto [b, e] = equal_range(slots, tk);
         slots.erase(b, e);
     }
 
-    bool contains(const thunk<>& tk) final override
+    bool contains(const thunk<>& tk) final
     {
         shared_lock lk{mtx};
         auto [b, e] = equal_range(slots, tk);
         return b != e;
     }
 
-    void add_tracker(const thunk<>& tk, const weak_ptr<void>& p) final override
+    void add_tracker(const thunk<>& tk, const weak_ptr<void>& p) final
     {
         shared_lock lk{mtx};
         auto [b, e] = equal_range(slots, tk);
@@ -816,4 +819,5 @@ private:
 
 } // namespace hera
 
+// NOLINTEND(cppcoreguidelines-pro-type-*)
 #endif

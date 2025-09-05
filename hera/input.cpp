@@ -246,9 +246,6 @@ pair<key_event, key_event> key_event::from_toml(const toml::table& table)
     }
 
     if (auto maybe_k = table["key"].value_exact<string>(); maybe_k) {
-        auto kup_str = *maybe_k + ".up";
-        auto kdn_str = *maybe_k + ".dn";
-
         auto map_kstr = [](auto&& kstr) {
             auto it = string_keys.find(kstr), end = string_keys.end();
             return [=] { return it != end ? optional{it->second} : nullopt; };
@@ -519,6 +516,8 @@ void input::key_input_cb(GLFWwindow*, int key, int _scancode, int action,
         case key_left_control:
         case key_right_control:
             mods &= ~mod_ctrl;
+            break;
+        default:
             break;
         }
         modstate[scancode] = mods;

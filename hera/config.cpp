@@ -30,6 +30,7 @@ static constexpr string_view CONFNAME = "hera.toml";
 
 path root_config_path()
 {
+    // NOLINTNEXTLINE
     constexpr string_view searchdirs[] = {"config", "Resources/config",
                                           "share/hera/config"};
 

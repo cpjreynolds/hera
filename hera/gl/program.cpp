@@ -99,8 +99,8 @@ shader_t shader_classify(const path& fpath)
 
 const Shader Shader::null{nullptr};
 
-Shader::Shader(const path& pat)
-    : _fpath{pat},
+Shader::Shader(path pat)
+    : _fpath{std::move(pat)},
       _fname{_fpath.filename()},
       _type{shader_classify(_fpath)}
 {

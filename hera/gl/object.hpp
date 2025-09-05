@@ -24,8 +24,7 @@
 #include <hera/utility.hpp>
 #include <hera/gl/vertex.hpp>
 
-namespace hera {
-namespace gl {
+namespace hera::gl {
 
 namespace detail {
 constexpr bind_query to_bind_query(buffer_t b)
@@ -749,7 +748,7 @@ inline void draw(primitive_t mode, GLsizei count, GLint start = 0)
 
 inline void draw(primitive_t mode, GLsizei count, gl_t type, size_t offset = 0)
 {
-    glDrawElements(+mode, count, +type, (const GLvoid*)offset);
+    glDrawElements(+mode, count, +type, (const void*)offset); // NOLINT
 }
 
 // set the value of a uniform variable.
@@ -1061,7 +1060,7 @@ public:
         constexpr auto off = detail::type_offset<T, IDs...>::value;
         using self_t = like_t<decltype(self), object>;
         using ret_t = remove_reference_t<like_t<decltype(self), T>>;
-        ret_t* ptr = reinterpret_cast<ret_t*>(&((self_t)self).id_data[off]);
+        auto ptr = reinterpret_cast<ret_t*>(&((self_t)self).id_data[off]);
         return span<ret_t, size<T>()>{ptr, size<T>()};
     }
 
@@ -1122,9 +1121,7 @@ private:
     }
 };
 
-} // namespace gl
-
-} // namespace hera
+} // namespace hera::gl
 
 template<size_t I, hera::gl::id::id auto N, hera::gl::id::id auto... Ns>
 struct std::tuple_element<I, hera::gl::object<N, Ns...>>

@@ -27,11 +27,11 @@ static constexpr size_t MAX_USERPTRS = 4;
 template<typename T>
 void register_userptr(T* ptr, GLFWwindow* window = glfwGetCurrentContext())
 {
-    uintptr_t* userptrs = (uintptr_t*)glfwGetWindowUserPointer(window);
-    for (auto i = 0u; i < MAX_USERPTRS; ++i) {
-        if (userptrs[i * 2] == 0) {
-            userptrs[i * 2] = typeid(T).hash_code();
-            userptrs[i * 2 + 1] = (uintptr_t)ptr;
+    auto userptrs = (uintptr_t*)glfwGetWindowUserPointer(window);
+    for (auto i = 0uz; i < MAX_USERPTRS; ++i) {
+        if (userptrs[i * 2uz] == 0) {
+            userptrs[i * 2uz] = typeid(T).hash_code();
+            userptrs[i * 2uz + 1uz] = (uintptr_t)ptr;
             return;
         }
     }
@@ -41,8 +41,8 @@ void register_userptr(T* ptr, GLFWwindow* window = glfwGetCurrentContext())
 template<typename T>
 T* get_userptr(GLFWwindow* window = glfwGetCurrentContext())
 {
-    uintptr_t* userptrs = (uintptr_t*)glfwGetWindowUserPointer(window);
-    for (auto i = 0u; i < MAX_USERPTRS; ++i) {
+    auto userptrs = (uintptr_t*)glfwGetWindowUserPointer(window);
+    for (auto i = 0uz; i < MAX_USERPTRS; ++i) {
         if (userptrs[i * 2] == typeid(T).hash_code()) {
             return reinterpret_cast<T*>(userptrs[i * 2 + 1]);
         }
