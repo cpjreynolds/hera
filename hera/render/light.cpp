@@ -54,9 +54,9 @@ Light::Light(vec3 pos, vec3 color) : pos{pos}, color{color}, vbuf{vertices}
     model = glm::scale(model, vec3{0.2});
 }
 
-void Light::draw(const gl::Pipeline& prog, float) const
+void Light::draw(Frame& f, float) const
 {
-    prog.uniform("model", model);
+    f->pipeline().uniform("model", model);
     vbuf.draw();
 }
 

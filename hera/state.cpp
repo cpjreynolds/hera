@@ -69,20 +69,18 @@ void State::do_update()
 
 void State::do_render()
 {
-    for (auto&& frame : *renderer) {
-        auto&& p = frame.pipeline("scene");
-        light.load_into(p);
-        const float delta = ticker.delta();
-        for (const auto& cube : cubes) {
-            frame.draw(cube, delta);
-            gl::checkerror();
-        }
-        frame.pipeline("lamp");
-        frame.draw(light);
-
-        auto&& tp = frame.pipeline("text");
-        frame.projector.put('g', 0, 0, tp);
+    Frame frame{*renderer};
+    auto&& p = frame->pipeline("scene");
+    light.load_into(p);
+    const float delta = ticker.delta();
+    for (const auto& cube : cubes) {
+        cube.draw(frame, delta);
     }
+    frame->pipeline("lamp");
+    light.draw(frame, delta);
+
+    auto&& tp = frame->pipeline("text");
+    frame->projector.put('g', 0, 0, tp);
 }
 
 void State::do_input()

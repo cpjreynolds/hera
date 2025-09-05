@@ -20,10 +20,11 @@
 #include <hera/common.hpp>
 #include <hera/gl/buffer.hpp>
 #include <hera/gl/program.hpp>
+#include <hera/render/renderer.hpp>
 
 namespace hera {
 
-class Light {
+class Light : Drawable {
     vec3 pos;
     vec3 color;
     float ambient = 0.2;
@@ -34,7 +35,7 @@ public:
     Light(vec3 pos, vec3 color = {1, 1, 1});
 
     // draw the light source's actual geometry.
-    void draw(const gl::Pipeline&, float) const;
+    void draw(Frame& f, float delta) const override;
 
     // load light parameters into given shader.
     void load_into(const gl::Pipeline&) const;

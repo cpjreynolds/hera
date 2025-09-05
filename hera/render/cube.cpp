@@ -84,19 +84,16 @@ Cube::Cube(const path& diff, const path& spec, const vec3& pos,
       _angle{0},
       _offset{offset} {};
 
-void Cube::draw(const gl::Pipeline& shader, float alpha) const
+void Cube::draw(Frame& f, float alpha) const
 {
+    const auto& shader = f->pipeline();
     diff.bind(0);
     spec.bind(1);
     shader.uniform("t_diffuse", diff.unit());
-    gl::checkerror();
     shader.uniform("t_specular", spec.unit());
-    gl::checkerror();
     shader.uniform("shine", shine);
-    gl::checkerror();
 
-    Geometry::draw(shader, alpha);
-    gl::checkerror();
+    Geometry::draw(f, alpha);
 }
 
 } // namespace hera

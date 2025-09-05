@@ -49,7 +49,7 @@ public:
     Cube(const path& diff, const path& spec, const vec3& pos = vec3{0.0},
          const vec3& axis = vec3{1.0, 0.0, 0.0}, float offset = 0.0);
 
-    void draw(const gl::Pipeline&, float) const override;
+    void draw(Frame& f, float) const override;
 
     void update()
     {

@@ -28,10 +28,6 @@
 
 namespace hera {
 
-template<typename T>
-concept drawable =
-    requires(T& obj, const gl::Pipeline& s, float a) { obj.draw(s, a); };
-
 class Renderer {
 private:
     GLFWwindow* _window;
@@ -56,63 +52,43 @@ public:
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
 
-    template<drawable T>
-    void draw(T& obj, float alpha = 1.0)
-    {
-        obj.draw(shaders.active(), alpha);
-    }
-
     const gl::Pipeline& pipeline(string_view name);
     const gl::Pipeline& pipeline() const;
 
     class Frame {
-        Renderer* rdr{nullptr};
-
-        Frame() {};
-        Frame(Renderer* r) : rdr{r} { rdr->begin_frame(); }
+    private:
+        Renderer& rdr;
+        friend class Renderer;
 
     public:
+        Frame(Renderer& r) : rdr{r} { rdr.begin_frame(); }
         Frame(const Frame&) = delete;
         Frame& operator=(const Frame&) = delete;
-        Frame(Frame&& r) : rdr{std::exchange(r.rdr, nullptr)} {}
-        Frame& operator=(Frame&& r)
-        {
-            Frame(std::move(r)).swap(*this);
-            return *this;
-        }
-        void swap(Frame& other) { std::swap(rdr, other.rdr); }
+        Frame(Frame&&) = delete;
+        Frame& operator=(Frame&&) = delete;
 
-        Frame& operator++()
-        {
-            rdr->swap();
-            rdr = nullptr;
-            return *this;
-        }
+        ~Frame() { rdr.swap(); }
 
-        Renderer& operator*() { return *rdr; }
-        Renderer* operator->() { return rdr; }
-
-        friend bool operator==(const Frame& l, std::default_sentinel_t)
-        {
-            return l.rdr == nullptr;
-        }
-        friend class Renderer;
-        using difference_type = ptrdiff_t;
-        using value_type = Renderer;
-        using reference = Renderer&;
-        using pointer = Renderer*;
-        using iterator_category = std::input_iterator_tag;
+        Renderer& operator*() { return rdr; }
+        Renderer* operator->() { return &rdr; }
     };
 
-    Frame begin() { return Frame(this); }
-    std::default_sentinel_t end() { return std::default_sentinel; }
-
-    void begin_frame();
     void swap() { glfwSwapBuffers(_window); }
 
     void on_action(input_action);
 
+private:
+    void begin_frame();
     friend struct fmt::formatter<Renderer>;
+};
+
+using Frame = Renderer::Frame;
+
+class Drawable {
+public:
+    virtual ~Drawable() {};
+
+    virtual void draw(Frame& f, float alpha) const = 0;
 };
 
 } // namespace hera

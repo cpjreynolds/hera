@@ -24,6 +24,7 @@
 #include <hera/gl/vertex.hpp>
 #include <hera/gl/buffer.hpp>
 #include <hera/gl/program.hpp>
+#include <hera/render/renderer.hpp>
 
 namespace hera {
 
@@ -44,7 +45,7 @@ static constexpr uint16_t basic_quad_indices[] = {0, 1, 3, 1, 2, 3};
 
 } // namespace
 
-class Geometry {
+class Geometry : Drawable {
 private:
     mat4 _model{1.0f};
     mat4 _prev_model{1.0f};
@@ -56,9 +57,7 @@ protected:
     Geometry(const gl::VertexBuffer& vbuf) : _vbuf{vbuf} {}
 
 public:
-    virtual ~Geometry() {};
-
-    virtual void draw(const gl::Pipeline& shader, float alpha) const;
+    void draw(Frame& f, float alpha) const override;
 
     const mat4& model() const { return _model; }
     void model(const mat4& model)
