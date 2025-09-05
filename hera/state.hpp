@@ -60,10 +60,11 @@ public:
     vector<Cube> cubes;
     vector<vec3> cube_pos;
 
-    Light light;
+    DirLight dir_light;
+    vector<PointLight> plights;
     shared_ptr<Camera> camera = Camera::create();
 
-    State(Private) : window{glfwGetCurrentContext()}, light{{0, 0, 0}}
+    State(Private) : window{glfwGetCurrentContext()}, dir_light{{0, -1.0, 0}}
     {
         gl::checkerror();
         camera->load_into(renderer->shaders);

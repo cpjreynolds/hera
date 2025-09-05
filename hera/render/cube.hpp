@@ -37,9 +37,7 @@ class Cube : public Geometry {
     static constexpr float rotate_rate = 1.0 / 6;
     static constexpr float increment = tau * rotate_rate * tickrate();
 
-    gl::Texture2d diff;
-    gl::Texture2d spec;
-    float shine;
+    Material material;
     vec3 _pos;
     vec3 _axis;
     float _angle;

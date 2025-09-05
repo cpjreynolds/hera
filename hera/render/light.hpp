@@ -24,22 +24,71 @@
 
 namespace hera {
 
-class Light : Drawable {
-    vec3 pos;
-    vec3 color;
-    float ambient = 0.2;
-    gl::VertexBuffer vbuf;
+namespace detail {
+struct light_vertex {
+    float pos[3];
+};
+
+static constexpr light_vertex light_vertices[] = {
+    {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, -0.5f},
+    {0.5f, 0.5f, -0.5f},   {-0.5f, 0.5f, -0.5f}, {-0.5f, -0.5f, -0.5f},
+
+    {-0.5f, -0.5f, 0.5f},  {0.5f, -0.5f, 0.5f},  {0.5f, 0.5f, 0.5f},
+    {0.5f, 0.5f, 0.5f},    {-0.5f, 0.5f, 0.5f},  {-0.5f, -0.5f, 0.5f},
+
+    {-0.5f, 0.5f, 0.5f},   {-0.5f, 0.5f, -0.5f}, {-0.5f, -0.5f, -0.5f},
+    {-0.5f, -0.5f, -0.5f}, {-0.5f, -0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f},
+
+    {0.5f, 0.5f, 0.5f},    {0.5f, 0.5f, -0.5f},  {0.5f, -0.5f, -0.5f},
+    {0.5f, -0.5f, -0.5f},  {0.5f, -0.5f, 0.5f},  {0.5f, 0.5f, 0.5f},
+
+    {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, 0.5f},
+    {0.5f, -0.5f, 0.5f},   {-0.5f, -0.5f, 0.5f}, {-0.5f, -0.5f, -0.5f},
+
+    {-0.5f, 0.5f, -0.5f},  {0.5f, 0.5f, -0.5f},  {0.5f, 0.5f, 0.5f},
+    {0.5f, 0.5f, 0.5f},    {-0.5f, 0.5f, 0.5f},  {-0.5f, 0.5f, -0.5f}};
+} // namespace detail
+
+template<>
+struct gl::vertex<detail::light_vertex> : attributes<float[3]> {};
+
+struct PointLight : public Drawable {
+    vec3 position = {0, 0, 0};
+
+    float constant = 1.0;
+    float linear = 0.14;
+    float quadratic = 0.07;
+
+    vec3 ambient = {.05, .05, .05};
+    vec3 diffuse = {.8, .8, .8};
+    vec3 specular = {1, 1, 1};
+    gl::VertexBuffer vbuf{detail::light_vertices};
     mat4 model{1.0};
 
-public:
-    Light(vec3 pos, vec3 color = {1, 1, 1});
+    PointLight(vec3 pos) : position{pos}
+    {
+        model = glm::translate(model, pos);
+        model = glm::scale(model, vec3{0.2});
+    };
 
     // draw the light source's actual geometry.
     void draw(Frame& f, float delta) const override;
 
     // load light parameters into given shader.
-    void load_into(const gl::Pipeline&) const;
+    void load_into(const string& root, const gl::Pipeline&) const;
 };
+
+struct DirLight {
+    vec3 direction;
+    vec3 ambient = {.1, .1, .1};
+    vec3 diffuse = {.4, .4, .4};
+    vec3 specular = {.5, .5, .5};
+
+    DirLight(vec3 dir) : direction{dir} {};
+
+    void load_into(const string& root, const gl::Pipeline&) const;
+};
+
 } // namespace hera
 
 #endif

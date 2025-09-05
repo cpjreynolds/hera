@@ -70,14 +70,23 @@ void State::do_update()
 void State::do_render()
 {
     Frame frame{*renderer};
-    auto&& p = frame->pipeline("scene");
-    light.load_into(p);
     const float delta = ticker.delta();
+
+    auto&& p = frame->pipeline("scene");
+    dir_light.load_into("dir_light", p);
+    for (auto i = 0u; i < plights.size(); ++i) {
+        plights[i].load_into(std::format("point_lights[{}]", i), p);
+    }
+    int npl = plights.size();
+    p.uniform("n_point_lights", npl);
     for (const auto& cube : cubes) {
         cube.draw(frame, delta);
     }
+
     frame->pipeline("lamp");
-    light.draw(frame, delta);
+    for (const auto& pl : plights) {
+        pl.draw(frame, delta);
+    }
 
     auto&& tp = frame->pipeline("text");
     frame->projector.put('g', 0, 0, tp);
@@ -120,11 +129,11 @@ void State::prologue()
     auto randoff = [&]() { return roffset(rgen); };
 
     cube_pos.assign(
-        {glm::vec3(2.0f, 5.0f, -15.0f), glm::vec3(-1.5f, -2.2f, -2.5f),
-         glm::vec3(-3.8f, -2.0f, -12.3f), glm::vec3(2.4f, -0.4f, -3.5f),
-         glm::vec3(-1.7f, 3.0f, -7.5f), glm::vec3(1.3f, -2.0f, -2.5f),
-         glm::vec3(1.5f, 2.0f, -2.5f), glm::vec3(1.5f, 0.2f, -1.5f),
-         glm::vec3(-1.3f, 1.0f, -1.5f)});
+        {glm::vec3{0.0, 0.0, 0.0}, glm::vec3(2.0f, 5.0f, -15.0f),
+         glm::vec3(-1.5f, -2.2f, -2.5f), glm::vec3(-3.8f, -2.0f, -12.3f),
+         glm::vec3(2.4f, -0.4f, -3.5f), glm::vec3(-1.7f, 3.0f, -7.5f),
+         glm::vec3(1.3f, -2.0f, -2.5f), glm::vec3(1.5f, 2.0f, -2.5f),
+         glm::vec3(1.5f, 0.2f, -1.5f), glm::vec3(-1.3f, 1.0f, -1.5f)});
 
     for (const auto& pos : cube_pos) {
         auto cube = mastercube;
@@ -133,6 +142,11 @@ void State::prologue()
         cube.offset(randoff());
         cubes.push_back(std::move(cube));
     }
+
+    plights.push_back(PointLight{{0.7, 0.2, 2.0}});
+    plights.push_back(PointLight{{2.3, -3.3, -4.0}});
+    plights.push_back(PointLight{{-4.0, 2.0, -12.0}});
+    plights.push_back(PointLight{{0.0, 0.0, -3.0}});
 
     do_input();
     gl::checkerror();

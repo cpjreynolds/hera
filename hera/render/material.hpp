@@ -24,16 +24,16 @@
 namespace hera {
 
 struct Material {
-    gl::Texture2d diff;
-    gl::Texture2d spec;
+    gl::Texture2d diffuse;
+    gl::Texture2d specular;
     float shine;
 
     Material(gl::Texture2d diff, gl::Texture2d spec, float shine)
-        : diff{std::move(diff)},
-          spec{std::move(spec)},
+        : diffuse{std::move(diff)},
+          specular{std::move(spec)},
           shine{shine} {};
 
-    void upload(const gl::Pipeline&, int idx = -1) const;
+    void load_into(const string& root, const gl::Pipeline&) const;
 };
 
 } // namespace hera

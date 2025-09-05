@@ -18,53 +18,31 @@
 
 #include <hera/render/light.hpp>
 
-namespace {
-struct light_vertex {
-    float pos[3];
-};
-
-static constexpr light_vertex vertices[] = {
-    {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f}, {0.5f, 0.5f, -0.5f},
-    {0.5f, 0.5f, -0.5f},   {-0.5f, 0.5f, -0.5f}, {-0.5f, -0.5f, -0.5f},
-
-    {-0.5f, -0.5f, 0.5f},  {0.5f, -0.5f, 0.5f},  {0.5f, 0.5f, 0.5f},
-    {0.5f, 0.5f, 0.5f},    {-0.5f, 0.5f, 0.5f},  {-0.5f, -0.5f, 0.5f},
-
-    {-0.5f, 0.5f, 0.5f},   {-0.5f, 0.5f, -0.5f}, {-0.5f, -0.5f, -0.5f},
-    {-0.5f, -0.5f, -0.5f}, {-0.5f, -0.5f, 0.5f}, {-0.5f, 0.5f, 0.5f},
-
-    {0.5f, 0.5f, 0.5f},    {0.5f, 0.5f, -0.5f},  {0.5f, -0.5f, -0.5f},
-    {0.5f, -0.5f, -0.5f},  {0.5f, -0.5f, 0.5f},  {0.5f, 0.5f, 0.5f},
-
-    {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, 0.5f},
-    {0.5f, -0.5f, 0.5f},   {-0.5f, -0.5f, 0.5f}, {-0.5f, -0.5f, -0.5f},
-
-    {-0.5f, 0.5f, -0.5f},  {0.5f, 0.5f, -0.5f},  {0.5f, 0.5f, 0.5f},
-    {0.5f, 0.5f, 0.5f},    {-0.5f, 0.5f, 0.5f},  {-0.5f, 0.5f, -0.5f}};
-} // namespace
-
 namespace hera {
 
-template<>
-struct gl::vertex<light_vertex> : attributes<float[3]> {};
-
-Light::Light(vec3 pos, vec3 color) : pos{pos}, color{color}, vbuf{vertices}
-{
-    model = glm::translate(model, pos);
-    model = glm::scale(model, vec3{0.2});
-}
-
-void Light::draw(Frame& f, float) const
+void PointLight::draw(Frame& f, float) const
 {
     f->pipeline().uniform("model", model);
     vbuf.draw();
 }
 
-void Light::load_into(const gl::Pipeline& prog) const
+void PointLight::load_into(const string& root, const gl::Pipeline& prog) const
 {
-    prog.uniform("light_color", color);
-    prog.uniform("light_pos", pos);
-    prog.uniform("light_ambient", ambient);
+    prog.uniform(root + ".position", position);
+    prog.uniform(root + ".constant", constant);
+    prog.uniform(root + ".linear", linear);
+    prog.uniform(root + ".quadratic", quadratic);
+    prog.uniform(root + ".ambient", ambient);
+    prog.uniform(root + ".diffuse", diffuse);
+    prog.uniform(root + ".specular", specular);
+}
+
+void DirLight::load_into(const string& root, const gl::Pipeline& prog) const
+{
+    prog.uniform(root + ".direction", direction);
+    prog.uniform(root + ".ambient", ambient);
+    prog.uniform(root + ".diffuse", diffuse);
+    prog.uniform(root + ".specular", specular);
 }
 
 } // namespace hera

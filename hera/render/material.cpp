@@ -18,17 +18,11 @@
 
 namespace hera {
 
-void Material::upload(const gl::Pipeline& prog, int idx) const
+void Material::load_into(const string& root, const gl::Pipeline& prog) const
 {
-    string uname{"material"};
-
-    if (idx != -1) {
-        uname += std::format("[{}]", idx);
-    }
-
-    prog.uniform(uname + ".diff", static_cast<GLint>(+diff.unit()));
-    prog.uniform(uname + ".spec", static_cast<GLint>(+spec.unit()));
-    prog.uniform(uname + ".shine", shine);
+    prog.uniform(root + ".diffuse", diffuse.unit());
+    prog.uniform(root + ".specular", specular.unit());
+    prog.uniform(root + ".shine", shine);
     gl::checkerror();
 }
 
