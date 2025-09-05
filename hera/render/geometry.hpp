@@ -25,6 +25,7 @@
 #include <hera/gl/buffer.hpp>
 #include <hera/gl/program.hpp>
 #include <hera/render/renderer.hpp>
+#include <utility>
 
 namespace hera {
 
@@ -35,10 +36,10 @@ struct quad_vertex {
 };
 
 static constexpr quad_vertex basic_quad_vertices[] = {
-    {{1, 1, 0}, {1, 1}},     // top right
-    {{1, -1, 0}, {1, -1}},   // bottom right
-    {{-1, -1, 0}, {-1, -1}}, // bottom left
-    {{-1, 1, 0}, {-1, 1}},   // top left
+    {.pos = {1, 1, 0}, .tex = {1, 1}},     // top right
+    {.pos = {1, -1, 0}, .tex = {1, -1}},   // bottom right
+    {.pos = {-1, -1, 0}, .tex = {-1, -1}}, // bottom left
+    {.pos = {-1, 1, 0}, .tex = {-1, 1}},   // top left
 };
 
 static constexpr uint16_t basic_quad_indices[] = {0, 1, 3, 1, 2, 3};
@@ -54,7 +55,7 @@ protected:
     gl::VertexBuffer _vbuf;
 
     Geometry() = default;
-    Geometry(const gl::VertexBuffer& vbuf) : _vbuf{vbuf} {}
+    Geometry(gl::VertexBuffer vbuf) : _vbuf{std::move(vbuf)} {}
 
 public:
     void draw(Frame& f, float alpha) const override;

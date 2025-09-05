@@ -49,7 +49,7 @@ struct Face {
     // FT_Face _face = nullptr;
     unique_ptr<FT_FaceRec> _face;
 
-    Face() {};
+    Face() = default;
     Face(FT_Face f) : _face{f} {}
 
     FT_Face operator->() const { return _face.get(); }
@@ -115,11 +115,11 @@ struct Face {
     }
 
     // max advance in integer pixels.
-    int max_advance() const { return metrics().max_advance >> 6; }
+    FT_Pos max_advance() const { return metrics().max_advance >> 6; }
     // ascender in integer pixels.
-    int ascender() const { return metrics().ascender >> 6; }
+    FT_Pos ascender() const { return metrics().ascender >> 6; }
     // descender in integer pixels.
-    int descender() const { return metrics().descender >> 6; }
+    FT_Pos descender() const { return metrics().descender >> 6; }
 };
 
 struct FTLibrary {
@@ -151,7 +151,7 @@ static constexpr int align4(int val)
 static string default_alphabet()
 {
     string buf;
-    for (unsigned char ch = 0; ch != 0xff; ++ch) {
+    for (char ch = 0; ch != std::numeric_limits<char>::max(); ++ch) {
         buf.push_back(ch);
     }
     return buf;
@@ -174,7 +174,7 @@ static void add_char(Alphabet& alpha, const FT_GlyphSlotRec& glyph)
 
     int dst_offset = ((extents.x - bearing.y) * padded.x) + bearing.x;
 
-    auto dst_idx = alpha.buffer.size();
+    int dst_idx = alpha.buffer.size();
     alpha.buffer.resize(dst_idx + (padded.x * padded.y));
 
     unsigned char* src = bmp.buffer;
@@ -193,7 +193,7 @@ Alphabet::Alphabet(const Config& config)
                     path(config["assets.fonts.regular"]);
     FTLibrary lib;
     Face face = lib.new_face(fontpath.native());
-    face.char_size(16 * 64, 0);
+    face.char_size(16l * 64, 0);
     size = face.dims();
     extents = {face.ascender(), face.descender()};
     padded = {align4(size.x), size.y};
@@ -232,10 +232,10 @@ struct char_vertex {
 
 array<char_vertex, 6> make_quad(float w, float h)
 {
-    return {{{{w, h}, {1, 0}},
-             {{w, 0}, {1, 1}},
-             {{0, 0}, {0, 1}},
-             {{0, h}, {0, 0}}}};
+    return {{{.pos = {w, h}, .tex = {1, 0}},
+             {.pos = {w, 0}, .tex = {1, 1}},
+             {.pos = {0, 0}, .tex = {0, 1}},
+             {.pos = {0, h}, .tex = {0, 0}}}};
 }
 
 /*
@@ -284,7 +284,7 @@ Scribe::Scribe(const Config& config) : vbuf{}, alphabet{config}
 {
     gl::checkerror();
     LOG_DEBUG("init text projector");
-    const auto quad = make_quad(alphabet.size.x, alphabet.size.y);
+    const auto quad = make_quad(float(alphabet.size.x), float(alphabet.size.y));
     vbuf.data(quad, quad_indices);
 }
 

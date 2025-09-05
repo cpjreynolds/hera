@@ -86,7 +86,7 @@ using Frame = Renderer::Frame;
 
 class Drawable {
 public:
-    virtual ~Drawable() {};
+    virtual ~Drawable() = default;
 
     virtual void draw(Frame& f, float alpha) const = 0;
 };

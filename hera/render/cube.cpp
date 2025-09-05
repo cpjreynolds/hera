@@ -25,6 +25,7 @@ struct cube_vertex {
     vec2 tex;
 };
 
+// NOLINTBEGIN(modernize-use-designated-initializers)
 static constexpr cube_vertex vertices[] = {
     {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f}},
     {{0.5f, -0.5f, -0.5f}, {0.0f, 0.0f, -1.0f}, {1.0f, 0.0f}},
@@ -68,6 +69,7 @@ static constexpr cube_vertex vertices[] = {
     {{-0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
     {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f}},
 };
+// NOLINTEND(modernize-use-designated-initializers)
 } // namespace
 
 template<>

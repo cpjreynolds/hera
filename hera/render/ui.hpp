@@ -21,7 +21,7 @@ namespace hera {
 
 class UIElement {
     UIElement() = default;
-    virtual ~UIElement() {};
+    virtual ~UIElement() = default;
 };
 
 } // namespace hera
