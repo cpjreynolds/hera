@@ -36,3 +36,7 @@
 	path = extern/assimp
 	url = git@github.com:assimp/assimp.git
 	shallow = true
+[submodule "extern/imgui"]
+	path = extern/imgui
+	url = git@github.com:ocornut/imgui.git
+    shallow = true

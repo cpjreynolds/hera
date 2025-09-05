@@ -86,3 +86,10 @@ find_package(LuaBuild REQUIRED COMPONENTS ${SOL2_LUA_VERSION})
 set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(assimp)
+
+# ==[imgui]==
+file(GLOB IMGUI_SOURCES imgui/*.cpp)
+list(APPEND IMGUI_SOURCES imgui/backends/imgui_impl_glfw.cpp)
+list(APPEND IMGUI_SOURCES imgui/backends/imgui_impl_opengl3.cpp)
+add_library(imgui INTERFACE ${IMGUI_SOURCES})
+target_include_directories(imgui INTERFACE imgui)

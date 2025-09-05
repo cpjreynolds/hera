@@ -24,6 +24,7 @@ set(HERA_LIBRARIES
     sol2::sol2
     freetype
     assimp
+    imgui
 )
 
 list(APPEND HERA_DEFINES
