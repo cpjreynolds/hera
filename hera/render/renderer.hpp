@@ -24,7 +24,6 @@
 #include <hera/input.hpp>
 #include <hera/gl/program.hpp>
 #include <hera/render/camera.hpp>
-#include <hera/render/text.hpp>
 
 namespace hera {
 
@@ -39,7 +38,6 @@ private:
 public:
     Renderer(const Config&, Private);
 
-    Scribe projector;
     gl::Shaders shaders;
 
     static shared_ptr<Renderer> create(const Config& cfg)

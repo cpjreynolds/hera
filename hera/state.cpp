@@ -20,8 +20,8 @@
 #include <glm/gtx/matrix_interpolation.hpp>
 
 #include <hera/state.hpp>
-#include <hera/render/text.hpp>
 #include <hera/event.hpp>
+#include <hera/render/ui.hpp>
 
 using hera::Cube;
 
@@ -88,8 +88,12 @@ void State::do_render()
         pl.draw(frame, delta);
     }
 
-    auto&& tp = frame->pipeline("text");
-    frame->projector.put('g', 0, 0, tp);
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    ImGui::ShowDemoWindow();
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 void State::do_input()
@@ -170,8 +174,10 @@ void State::postamble()
     auto now_time = clock::now();
     duration<float> diff = now_time - last_stat;
     if (diff > 1s) {
-        LOG_DEBUG("rps: {}", render_steps / diff.count());
-        LOG_DEBUG("ups: {}", update_steps / diff.count());
+        /*
+         * LOG_DEBUG("rps: {}", render_steps / diff.count());
+         * LOG_DEBUG("ups: {}", update_steps / diff.count());
+         */
         last_stat = now_time;
         render_steps = update_steps = 0;
     }

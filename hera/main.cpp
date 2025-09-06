@@ -42,10 +42,12 @@ try
     init::window();
     init::gl();
     init::input();
+    init::ui();
 
     shared_ptr<State> state = State::create();
     state->run();
 
+    deinit::ui();
     deinit::input();
     deinit::window();
 

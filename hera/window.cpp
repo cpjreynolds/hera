@@ -70,7 +70,7 @@ GLFWwindow* init::window()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
 #endif
 
-    GLFWwindow* window = glfwCreateWindow(800, 600, "hera", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(1200, 800, "hera", nullptr, nullptr);
     if (!window) {
         glfwTerminate();
         throw hera::runtime_error("failed to create window");
@@ -91,9 +91,11 @@ GLFWwindow* init::window()
 
 void deinit::window()
 {
+    LOG_DEBUG("deinit window");
     auto window = glfwGetCurrentContext();
     glfwDestroyWindow(window);
     glfwTerminate();
+    LOG_DEBUG("deinit window done");
 }
 
 }; // namespace hera

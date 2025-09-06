@@ -18,6 +18,7 @@
 #include <hera/input.hpp>
 #include <hera/init.hpp>
 #include <hera/config.hpp>
+#include <hera/render/ui.hpp>
 
 using scancode_t = hera::key_event::scancode_t;
 using modifier_t = hera::key_event::modifier_t;
@@ -481,18 +482,26 @@ void input::cursor_pos_cb(GLFWwindow*, double xpos, double ypos)
 
     vec2 pos = virtual2nss({xpos, ypos});
 
-    cursor.post(_cursor_pos - pos, pos);
+    if (!ImGui::GetIO().WantCaptureMouse) {
+        cursor.post(_cursor_pos - pos, pos);
+    }
     _cursor_pos = pos;
 }
 
 void input::scroll_cb(GLFWwindow*, double xoffset, double yoffset)
 {
+    if (ImGui::GetIO().WantCaptureMouse)
+        return;
+
     scroll.post(vec2{xoffset, yoffset});
 }
 
 void input::key_input_cb(GLFWwindow*, int key, int _scancode, int action,
                          int mods)
 {
+    if (ImGui::GetIO().WantCaptureKeyboard)
+        return;
+
     using enum keycode_t;
     using enum modifier_t;
     auto scancode = static_cast<scancode_t>(_scancode);
@@ -537,6 +546,9 @@ void input::key_input_cb(GLFWwindow*, int key, int _scancode, int action,
 
 void input::mouse_btn_cb(GLFWwindow*, int btn, int action, int mods)
 {
+    if (ImGui::GetIO().WantCaptureMouse)
+        return;
+
     if (action == GLFW_REPEAT) {
         return;
     }

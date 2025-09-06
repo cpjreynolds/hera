@@ -17,12 +17,12 @@
 #ifndef HERA_RENDER_UI_HPP
 #define HERA_RENDER_UI_HPP
 
-namespace hera {
+#define IMGUI_USER_CONFIG "hera/render/imgui_config.hpp"
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
 
-class UIElement {
-    UIElement() = default;
-    virtual ~UIElement() = default;
-};
+namespace hera {
 
 } // namespace hera
 

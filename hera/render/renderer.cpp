@@ -23,8 +23,7 @@
 namespace hera {
 
 Renderer::Renderer(const Config& config, Private)
-    : _window{glfwGetCurrentContext()},
-      projector{config}
+    : _window{glfwGetCurrentContext()}
 {
     LOG_DEBUG("init renderer");
     path shaderpath = config["shaders.path"];

@@ -30,6 +30,7 @@ struct init {
     static void gl();
     static void error();
     static void input();
+    static void ui();
 };
 
 struct deinit {
@@ -37,6 +38,7 @@ struct deinit {
 
     static void input();
     static void window();
+    static void ui();
 };
 
 } // namespace hera
