@@ -17,10 +17,12 @@
 #ifndef HERA_RENDER_UI_HPP
 #define HERA_RENDER_UI_HPP
 
-#define IMGUI_USER_CONFIG "hera/render/imgui_config.hpp"
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
+
+// yes I really did hate having to use my shift key this much.
+namespace imgui = ImGui;
 
 namespace hera {
 

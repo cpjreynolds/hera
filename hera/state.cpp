@@ -21,7 +21,7 @@
 
 #include <hera/state.hpp>
 #include <hera/event.hpp>
-#include <hera/render/ui.hpp>
+#include <hera/ui.hpp>
 
 using hera::Cube;
 

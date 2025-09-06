@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include <hera/render/ui.hpp>
+#include <hera/ui.hpp>
 
 #include <hera/common.hpp>
 #include <hera/init.hpp>
@@ -32,6 +32,7 @@ void init::ui()
 
     auto& io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigNavEscapeClearFocusWindow = true;
 
     Config config{};
 

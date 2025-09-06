@@ -18,7 +18,7 @@
 #include <hera/input.hpp>
 #include <hera/init.hpp>
 #include <hera/config.hpp>
-#include <hera/render/ui.hpp>
+#include <hera/ui.hpp>
 
 using scancode_t = hera::key_event::scancode_t;
 using modifier_t = hera::key_event::modifier_t;
@@ -435,6 +435,9 @@ void input::toggle_cursor()
         glfwSetInputMode(window, GLFW_CURSOR, _cursor_mode);
         _cursor_pos = get_cursor();
     }
+    auto& io = ImGui::GetIO();
+    io.ConfigFlags ^= ImGuiConfigFlags_NoMouse;
+    io.ConfigFlags ^= ImGuiConfigFlags_NoKeyboard;
 }
 
 void input::capture_cursor()

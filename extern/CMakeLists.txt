@@ -95,3 +95,5 @@ add_library(imgui INTERFACE)
 target_sources(imgui INTERFACE ${IMGUI_SOURCES})
 target_include_directories(imgui INTERFACE imgui)
 target_include_directories(imgui INTERFACE imgui/backends)
+target_compile_definitions(imgui INTERFACE
+    IMGUI_USER_CONFIG="hera/render/imgui_config.hpp")
