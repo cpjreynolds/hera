@@ -53,3 +53,4 @@
 [submodule "extern/shaderc"]
 	path = extern/shaderc
 	url = git@github.com:cpjreynolds/shaderc.git
+    branch = buildfix
