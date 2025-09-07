@@ -52,6 +52,4 @@
     branch = master
 [submodule "extern/shaderc"]
 	path = extern/shaderc
-	url = git@github.com:google/shaderc.git
-    shallow = true
-    branch = main
+	url = git@github.com:cpjreynolds/shaderc.git
