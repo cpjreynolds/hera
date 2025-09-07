@@ -84,9 +84,11 @@ list(APPEND CMAKE_MODULE_PATH
 find_package(LuaBuild REQUIRED COMPONENTS ${SOL2_LUA_VERSION})
 
 # ==[assimp]==
-set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
-add_subdirectory(assimp)
+if (HERA_BUILD_ASSIMP)
+    set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+    add_subdirectory(assimp)
+endif()
 
 # ==[imgui]==
 file(GLOB IMGUI_SOURCES imgui/*.cpp)

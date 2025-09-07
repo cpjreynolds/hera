@@ -23,9 +23,11 @@ set(HERA_LIBRARIES
     Lua::Lua
     sol2::sol2
     freetype
-    assimp
     imgui
 )
+if (HERA_BUILD_ASSIMP)
+    list(APPEND HERA_LIBRARIES assimp)
+endif()
 
 list(APPEND HERA_DEFINES
     GLFW_INCLUDE_NONE
