@@ -50,3 +50,8 @@
 	url = git@github.com:ocornut/imgui.git
     shallow = true
     branch = master
+[submodule "extern/shaderc"]
+	path = extern/shaderc
+	url = git@github.com:google/shaderc.git
+    shallow = true
+    branch = main
