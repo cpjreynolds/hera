@@ -41,19 +41,16 @@ Texture2d::Texture2d(const path& fpath, const TextureParams& params,
     case 4:
         format = internal_f::rgba;
         break;
+    default:
+        throw gl_error{"bad texture image channel number"};
     }
 
-    gl::checkerror();
     bind();
-    gl::checkerror();
     params.apply(target);
-    gl::checkerror();
-    gl::allocate(target, format, size.x, size.y,
-                 span(buf.get(), size.x * size.y * channels));
-    gl::checkerror();
+    size_t bytes = 1uz * size.x * size.y * channels;
+    gl::allocate(target, format, size.x, size.y, span(buf.get(), bytes));
 
     glGenerateMipmap(GL_TEXTURE_2D);
-    gl::checkerror();
 }
 
 } // namespace hera::gl

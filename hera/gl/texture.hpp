@@ -77,7 +77,7 @@ struct TextureArray : Texture<texture_t::array_2d> {
     ivec3 size{0};
     internal_f iformat;
 
-    TextureArray() {};
+    TextureArray() = default;
     TextureArray(internal_f internalf, int w, int h, int n, texture_u unit = 0)
         : Texture{unit},
           size{w, h, n},
