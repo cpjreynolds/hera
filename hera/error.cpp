@@ -70,9 +70,9 @@ void fixup_filepaths(string&);
 [[noreturn]] void terminate_handler()
 {
 #if HERA_NICEABORT
-    LOG_CRITICAL("terminating with exit(0)");
+    LOG_ERROR("terminating with exit(0)");
 #else
-    LOG_CRITICAL("terminating with abort()");
+    LOG_ERROR("terminating with abort()");
 #endif
     bool istty = isatty(STDOUT_FILENO);
     ostringstream buf;
