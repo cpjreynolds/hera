@@ -101,10 +101,3 @@ target_include_directories(imgui INTERFACE imgui/backends)
 target_compile_definitions(imgui INTERFACE
     IMGUI_USER_CONFIG="hera/render/imgui_config.hpp")
 
-# ==[shaderc]==
-set(SHADERC_SKIP_INSTALL ON CACHE BOOL "" FORCE)
-set(SHADERC_SKIP_TESTS ON CACHE BOOL "" FORCE)
-set(SHADERC_SKIP_EXAMPLES ON CACHE BOOL "" FORCE)
-set(SHADERC_SKIP_EXECUTABLES ON CACHE BOOL "" FORCE)
-set(ENABLE_GLSLANG_BINARIES OFF CACHE BOOL "" FORCE)
-add_subdirectory(shaderc)
