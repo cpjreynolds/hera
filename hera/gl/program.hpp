@@ -26,11 +26,35 @@
 
 namespace hera::gl {
 
+class Preprocessor {
+    hash_map<string, string> _defines;
+
+public:
+    using defines_map = decltype(_defines);
+
+    void define(const string& key, const string& value = "");
+    string preprocess(const string& src,
+                      const defines_map& local_defines) const;
+};
+
+class Shaders;
+
 class Shader : private object<id::program(1)> {
     static constexpr id::program pID{0};
     path _fpath;
-    string _fname;
+    path _fname;
     shader_t _type;
+    string _modname;
+    string _source;
+    // #line directives use integers not filenames.
+    // this mapping keeps error messages comprehensible.
+    vector<string> _fname_indices;
+
+    mutable string _compilation_log;
+    mutable string _link_log;
+
+    // preprocessor defines
+    hash_map<string, string> _defines;
 
     // name -> {loc, type, size}
     mutable hash_map<string, tuple<GLint, GLenum, GLint>> _uniforms{};
@@ -39,6 +63,8 @@ class Shader : private object<id::program(1)> {
 
     explicit Shader(nullptr_t) : object{nullptr} {}
 
+    friend class Shaders;
+
 public:
     explicit Shader(path pat);
 
@@ -46,13 +72,23 @@ public:
 
     constexpr id::program id() const { return get<pID>(); }
     shader_t type() const { return _type; }
-    string_view filename() const { return _fname; }
-    string_view modname() const;
+    const path& filename() const { return _fname; }
+    string_view modname() const { return _modname; }
+
+    // set a preprocessor define
+    void define(const string& key, const string& value = "");
+    // read, preprocess, compile and link.
+    void load(const Shaders&);
+    // read file into source buffer.
+    void read();
+    // preprocess source buffer.
+    void preprocess(const Preprocessor&);
+    // compile and link.
+    void compile() const;
 
     int query(GLenum q) const { return gl::parameter(id(), q); }
-    // compile and link
-    void load() const;
-    string info_log() const;
+    const string& compilation_log() const { return _compilation_log; }
+    const string& link_log() const { return _link_log; }
 
     bool is_null() const { return id() == 0; }
     explicit operator bool() const { return !is_null(); }
@@ -99,8 +135,6 @@ public:
     }
 
 private:
-    friend class Shaders;
-
     struct block_info {
         int size;
         vector<GLenum> types;
@@ -108,6 +142,11 @@ private:
         friend auto operator<=>(const block_info&, const block_info&) = default;
     };
 
+    void update_compilation_log(GLuint sID) const;
+    void update_link_log() const;
+
+    // build the filename index
+    void index_fnames();
     vector<pair<string, block_info>> build_cache() const;
 
     static constexpr bool compatible_uniform(GLenum expect, GLenum have)
@@ -116,6 +155,9 @@ private:
                         expect == GL_SAMPLER_2D_ARRAY);
         return (expect == have) || (sampler && have == GL_INT);
     }
+
+    static shader_t classify(const path& fpath);
+    static string make_modname(const path&);
 };
 
 class Pipeline : private object<id::pipeline(1)> {
@@ -141,7 +183,7 @@ public:
     void attach(const Shader& s);
 
     string info_log() const;
-    bool valid() const;
+    bool validate() const;
     string_view name() const { return _name; }
 
     template<uniformable T>
@@ -355,6 +397,8 @@ class Shaders {
     hash_map<string, Shader> _shaders;
     hash_map<string, Pipeline> _pipelines;
 
+    Preprocessor _preprocessor;
+
     const Pipeline* _active = &Pipeline::null;
 
     using shaders_t = decltype(_shaders);
@@ -371,11 +415,23 @@ public:
     auto operator->(this auto& self) { return self._active; }
     decltype(auto) operator*(this auto& self) { return *self._active; }
 
+    void define(const string& key, const string& value = "");
+
+    // returns the preprocessor instance
+    decltype(auto) preprocessor(this auto& self)
+    {
+        auto&& x = self._preprocessor;
+        return x;
+    }
+
     // Loads all shaders in a directory.
     //
     // shader files which share a filename stem are considered a "module"
     // and will be linked together into a pipeline of the same name.
     void load(const path&);
+
+    // reloads existing shaders
+    void load();
 
     // links the shaders of module `name` into a program.
     void link(string_view name);

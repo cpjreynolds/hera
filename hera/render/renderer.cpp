@@ -36,8 +36,9 @@ void Renderer::on_action(input_action act)
 {
     if (act == input_action::reload && act.down()) {
         LOG_DEBUG("reloading shaders");
-        path shaderpath = Config{}["shaders.path"];
-        shaders.load(shaderpath);
+        // path shaderpath = Config{}["shaders.path"];
+        // shaders.load(shaderpath);
+        shaders.load();
     }
 }
 

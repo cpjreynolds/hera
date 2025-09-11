@@ -28,19 +28,6 @@
 
 namespace hera {
 
-string slurp(const char* fname)
-{
-    ifstream fs(fname);
-    ostringstream buf;
-    buf << fs.rdbuf();
-    return std::move(buf).str();
-}
-
-string slurp(const string& fname)
-{
-    return slurp(fname.c_str());
-}
-
 /*
 u32string u32conv(string_view from_str)
 {

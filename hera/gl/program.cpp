@@ -14,72 +14,60 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+#include <charconv>
+
 #include <hera/log.hpp>
 #include <hera/gl/program.hpp>
 
 namespace hera::gl {
 
+// =====[Preprocessor]=====
+
+void Preprocessor::define(const string& key, const string& value)
+{
+    _defines.insert_or_assign(key, value);
+}
+
+string Preprocessor::preprocess(const string& src,
+                                const defines_map& local_defines) const
+{
+    string buf;
+    auto output = back_inserter(buf);
+    for (auto&& [k, v] : _defines) {
+        std::format_to(output, "#define {} {}\n", k, v);
+    }
+    for (auto&& [k, v] : local_defines) {
+        std::format_to(output, "#define {} {}\n", k, v);
+    }
+
+    buf.append(src);
+    return buf;
+}
+
+// =====[Shader]=====
+
 namespace {
-// ingests a shader into a "friendly" format.
-// returns the source string and a map from file numbers to names.
-pair<string, map<string, string>> ingest_shader(istream& src)
-{
-    string retsrc;
-    // need to map in both directions.
-    map<string, string> fn_num;
-    map<string, string> num_fn;
+// raii shader object handle
+// just to ensure cleanup on exception
+struct shader_handle {
+    GLuint id;
 
-    for (string line; std::getline(src, line);) {
-        if (line.starts_with("#extension GL_GOOGLE")) {
-            continue;
-        }
-        if (line.starts_with("#line")) {
-            size_t qi = line.find('"');
-            size_t ei = line.size() - qi;
-            auto fname = line.substr(qi + 1, ei - 2);
-            auto fnum = std::to_string(fn_num.size());
-            auto [elt, is_uniq] = fn_num.insert({fname, fnum});
-            if (is_uniq) {
-                // new filename encountered
-                num_fn.insert({fnum, fname});
-            }
-            else {
-                // not a new file. use its existing number.
-                fnum = elt->second;
-            }
-            line.replace(qi, ei, fnum);
-        }
-        retsrc.append(line);
-        retsrc.push_back('\n');
-    }
-    return {retsrc, num_fn};
+    shader_handle(shader_t type) : id{glCreateShader(+type)} {}
+    ~shader_handle() { glDeleteShader(id); }
+};
+} // namespace
+
+const Shader Shader::null{nullptr};
+
+string Shader::make_modname(const path& fpath)
+{
+    string rv = fpath.native();
+    auto loc = rv.rfind('.');
+    rv.erase(loc, string::npos);
+    return rv;
 }
 
-string fixup_infolog(const string& ilog, const map<string, string>& fnmap)
-{
-    istringstream iss{ilog};
-    string output;
-    for (string line; std::getline(iss, line);) {
-        auto idx1 = line.find(':', 0);
-        if (idx1 == line.npos) {
-            continue;
-        }
-        auto idx2 = line.find(':', idx1 + 1);
-        if (idx2 == line.npos) {
-            continue;
-        }
-        idx1 += 2;
-        auto fnum = line.substr(idx1, idx2 - idx1);
-        line.replace(idx1, idx2 - idx1, fnmap.at(fnum));
-        output.append(line);
-        output.push_back('\n');
-    }
-    // remove the last newline.
-    output.pop_back();
-    return output;
-}
-
-shader_t shader_classify(const path& fpath)
+shader_t Shader::classify(const path& fpath)
 {
     auto ext = fpath.extension();
     if (ext == ".vert") {
@@ -93,82 +81,155 @@ shader_t shader_classify(const path& fpath)
     }
 }
 
-} // namespace
-
-// =====[Shader]=====
-
-const Shader Shader::null{nullptr};
-
 Shader::Shader(path pat)
     : _fpath{std::move(pat)},
       _fname{_fpath.filename()},
-      _type{shader_classify(_fpath)}
+      _type{classify(_fpath)},
+      _modname{make_modname(_fname)}
 {
-    if (+_type == GL_INVALID_ENUM) {
-        LOG_CRITICAL("indeterminate shader type: {}", _fpath.filename());
-        throw hera::runtime_error("indeterminate shader type");
+    if (!_type.valid()) {
+        LOG_ERROR("indeterminate shader type: {}", _fpath.filename());
+        throw gl_error("indeterminate shader type");
+    }
+    gl::parameter(id(), GL_PROGRAM_SEPARABLE, true);
+}
+
+void Shader::update_link_log() const
+{
+    _link_log.clear();
+    if (auto len = query(GL_INFO_LOG_LENGTH); len != 0) {
+        // len includes null terminator, which string already handles
+        _link_log.resize(len - 1);
+        glGetProgramInfoLog(id(), len, nullptr, _link_log.data());
     }
 }
 
-string_view Shader::modname() const
+void Shader::update_compilation_log(GLuint sID) const
 {
-    string_view name = _fname;
-    auto loc = name.find('.');
-    name.remove_suffix(name.size() - loc);
-    return name;
+    _compilation_log.clear();
+    int len;
+    glGetShaderiv(sID, GL_INFO_LOG_LENGTH, &len);
+    if (len == 0) {
+        return;
+    }
+    string newinfo;
+    newinfo.resize(len - 1);
+    glGetShaderInfoLog(sID, len, nullptr, newinfo.data());
+
+    istringstream iss{std::move(newinfo)};
+    for (string line; std::getline(iss, line);) {
+        auto idx1 = line.find(':', 0);
+        if (idx1 == line.npos) {
+            continue;
+        }
+        auto idx2 = line.find(':', idx1 + 1);
+        if (idx2 == line.npos) {
+            continue;
+        }
+        idx1 += 2;
+        size_t fnum;
+        std::from_chars(&line[idx1], &line[idx2], fnum);
+        line.replace(idx1, idx2 - idx1, _fname_indices.at(fnum));
+        _compilation_log.append(line);
+        _compilation_log.push_back('\n');
+    }
+    // remove the last newline.
+    _compilation_log.pop_back();
 }
 
-string Shader::info_log() const
+void Shader::read()
 {
-    auto len = query(GL_INFO_LOG_LENGTH);
-    string info(len, '\0');
-    glGetProgramInfoLog(id(), len, nullptr, info.data());
-    return info;
+    _source = slurp(_fpath);
 }
 
-void Shader::load() const
+void Shader::index_fnames()
+{
+    // filename to index
+    // (doesnt need to own the key string)
+    unordered_map<string, string> fn_num;
+
+    istringstream iss{std::move(_source)};
+    _source.clear();
+    for (string line; std::getline(iss, line);) {
+        if (line.starts_with("#extension GL_GOOGLE")) {
+            continue;
+        }
+        if (line.starts_with("#line")) {
+            size_t qi = line.find('"');
+            size_t ei = line.size() - qi;
+            auto fname = line.substr(qi + 1, ei - 2);
+            auto fnum = std::to_string(fn_num.size());
+            auto [elt, is_uniq] = fn_num.insert({fname, fnum});
+            if (is_uniq) {
+                // new filename encountered
+                _fname_indices.push_back(fname);
+            }
+            else {
+                // not a new file. use its existing number.
+                fnum = elt->second;
+            }
+            line.replace(qi, ei, fnum);
+        }
+        _source.append(line);
+        _source.push_back('\n');
+    }
+    if (_fname_indices.empty()) {
+        _fname_indices.push_back(_fname.native());
+    }
+}
+
+void Shader::load(const Shaders& ctx)
 {
     if (!_uniforms.empty()) {
-        LOG_INFO("reloading shader: {}", _fpath.filename());
+        LOG_INFO("reloading shader: {}", _fname);
         _uniforms.clear();
         _blocks.clear();
+        _fname_indices.clear();
     }
     else {
-        LOG_INFO("loading shader: {}", _fpath.filename());
+        LOG_INFO("loading shader: {}", _fname);
     }
+    read();
+    preprocess(ctx.preprocessor());
+    compile();
+}
 
-    ifstream ifile{_fpath};
-    ifile.exceptions(ifstream::badbit);
-    auto [src, fnmap] = ingest_shader(ifile);
+void Shader::define(const string& key, const string& value)
+{
+    _defines.insert_or_assign(key, value);
+}
 
-    auto sID = glCreateShader(+_type);
+void Shader::preprocess(const Preprocessor& preproc)
+{
+    _source = preproc.preprocess(_source, _defines);
+    index_fnames();
+}
 
-    auto data = src.data();
-    glShaderSource(sID, 1, &data, nullptr);
-    glCompileShader(sID);
+void Shader::compile() const
+{
+    shader_handle s{_type};
+
+    auto data = _source.data();
+    glShaderSource(s.id, 1, &data, nullptr);
+    glCompileShader(s.id);
+    update_compilation_log(s.id);
 
     int param;
-    glGetShaderiv(sID, GL_COMPILE_STATUS, &param);
+    glGetShaderiv(s.id, GL_COMPILE_STATUS, &param);
     if (!param) {
-        glGetShaderiv(sID, GL_INFO_LOG_LENGTH, &param);
-        string info(param, '\0');
-        glGetShaderInfoLog(sID, param, nullptr, info.data());
-        auto fixed_info = fixup_infolog(info, fnmap);
-        LOG_ERROR("\n{}", fixed_info);
-        glDeleteShader(sID);
+        LOG_ERROR("shader compile error: {}", _compilation_log);
         throw gl_error("shader compile error");
     }
 
-    gl::parameter(id(), GL_PROGRAM_SEPARABLE, true);
-    glAttachShader(id(), sID);
+    glAttachShader(id(), s.id);
     glLinkProgram(id());
-    glDetachShader(id(), sID);
-    glDeleteShader(sID);
+    glDetachShader(id(), s.id);
+    update_link_log();
 
     // error checking
     if (!query(GL_LINK_STATUS)) {
-        LOG_ERROR("shader link error\n{}", info_log());
-        throw hera::runtime_error("shader link error");
+        LOG_ERROR("shader link error: {}", _link_log);
+        throw gl_error("shader link error");
     }
 }
 
@@ -256,24 +317,29 @@ void Pipeline::attach(const Shader& sh)
 string Pipeline::info_log() const
 {
     auto len = gl::parameter(id(), GL_INFO_LOG_LENGTH);
-    string info(len, '\0');
+    string info(len - 1, '\0');
     glGetProgramPipelineInfoLog(id(), len, nullptr, info.data());
     return info;
 }
 
-bool Pipeline::valid() const
+bool Pipeline::validate() const
 {
     glValidateProgramPipeline(id());
     return gl::parameter(id(), GL_VALIDATE_STATUS);
 }
 
-// =====[Programs]=====
+// =====[Shaders]=====
+
+void Shaders::define(const string& key, const string& value)
+{
+    _preprocessor.define(key, value);
+}
 
 const Shader& Shaders::loadf(const path& pat)
 {
     // if it already exists, call load again.
     auto&& sh = _shaders.emplace(pat.native(), pat).first->second;
-    sh.load();
+    sh.load(*this);
     auto blk_info = sh.build_cache();
     for (auto&& [bname, binfo] : blk_info) {
         auto [it, newblk] = _block_infos.emplace(bname, binfo);
@@ -311,7 +377,7 @@ void Shaders::load(const path& pat)
 
     for (const auto& dirent :
          fs::directory_iterator{pat} | views::filter([](auto&& de) {
-             return de.is_regular_file() && shader_classify(de.path()).valid();
+             return de.is_regular_file() && Shader::classify(de.path()).valid();
          })) {
         auto& sh = loadf(dirent.path());
         bind_blocks_to(sh);
@@ -331,6 +397,13 @@ void Shaders::load(const path& pat)
         for (auto sh : shaders) {
             pipe.attach(*sh);
         }
+    }
+}
+
+void Shaders::load()
+{
+    for (auto& sh : views::values(_shaders)) {
+        sh.load(*this);
     }
 }
 

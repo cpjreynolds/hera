@@ -74,8 +74,35 @@ constexpr string type_of(Pat without, Pats... rest)
 }
 
 // read entire file into a string
-string slurp(const char*);
-string slurp(const string&);
+inline string slurp(const path& fpath, ios_base::openmode flags = ios_base::in)
+{
+    ifstream ifile;
+    ifile.exceptions(ifstream::badbit | ifstream::failbit);
+    ifile.open(fpath, flags);
+
+    string buf;
+    buf.resize(fs::file_size(fpath), '\0');
+    ifile.read(buf.data(), buf.size());
+    return buf;
+}
+
+// read file into given contiguous container, returning false on error
+template<typename Container>
+bool slurp(const path& fpath, Container& buf,
+           ios_base::openmode flags = ios_base::in)
+{
+    if (!fs::exists(fpath) && fs::is_regular_file(fpath)) {
+        return false;
+    }
+    ifstream ifile{fpath, flags};
+    if (ifile.fail()) {
+        return false;
+    }
+    buf.resize(fs::file_size(fpath), '\0');
+    ifile.read(buf.data(), buf.size());
+    ifile.close();
+    return bool(ifile);
+}
 
 // convert UTF-8 string to UTF-32
 // u32string u32conv(string_view);
