@@ -25,6 +25,7 @@ set(HERA_LIBRARIES
     freetype
     imgui
     shaderc
+    shaderc_util
 )
 if (HERA_BUILD_ASSIMP)
     list(APPEND HERA_LIBRARIES assimp)

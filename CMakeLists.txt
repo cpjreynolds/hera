@@ -36,7 +36,7 @@ hera_option(NICEABORT "terminate with exit(0)" ON)
 hera_option(APPLE_FUCKERY "fix apple VSYNC cockups" ${APPLE})
 hera_option(DEBUG "debug features" ON)
 
-set(HERA_SCRIPT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/scripts")
+set(HERA_SCRIPT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tools")
 
 if(HERA_BUNDLE)
     set(HERA_RESOURCE_DIR "$<TARGET_BUNDLE_DIR_NAME:hera>/Contents/Resources")
