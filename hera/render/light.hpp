@@ -1,5 +1,5 @@
 // hera
-// Copyright (C) 2024  Cole Reynolds
+// Copyright (C) 2024-2025  Cole Reynolds
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
