@@ -27,7 +27,7 @@ option(HERA_BUNDLE "build as a .app" ${APPLE})
 option(HERA_TEST "build tests" OFF)
 option(HERA_CHECK_COPYRIGHT "check source file copyright notices" ON)
 option(HERA_DELETE_DS_STORE "delete .DS_Store files" ${APPLE})
-option(HERA_BUILD_ASSIMP "build assimp" OFF)
+option(HERA_BUILD_ASSIMP "build assimp" ON)
 
 # build options
 hera_option(CATCH "top-level try/catch block" OFF)

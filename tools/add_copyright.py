@@ -17,10 +17,11 @@ import sys
 
 FILTERDIRS = ['extern', 'build*', 'assets', 'config']
 
-COPYRIGHTRE = re.compile(r'Copyright \(C\) \d+  Cole Reynolds')
+COPYRIGHTRE = re.compile(r'Copyright \(C\) \d+(\-\d+)?  Cole Reynolds')
+COPYRIGHTRE_EXACT = re.compile(r'Copyright \(C\) 2024-2025  Cole Reynolds')
 
 PROGNAME="hera"
-COPYRIGHT="Copyright (C) 2024  Cole Reynolds"
+COPYRIGHT="Copyright (C) 2024-2025  Cole Reynolds"
 
 LICENSED = """
 This program is free software: you can redistribute it and/or modify
@@ -85,8 +86,14 @@ def insert_copyright(glob, comment_prefix):
     licensed = comment(LICENSED, comment_prefix) + '\n\n'
     for file in filtered_descendants(glob):
         has_copyright = False
+        has_exact = False
         for line in fileinput.input(file, inplace=1):
             has_copyright = has_copyright or COPYRIGHTRE.search(line)
+            has_exact = has_exact or COPYRIGHTRE_EXACT.search(line);
+            if has_copyright and not has_exact:
+                sys.stdout.write(copyright)
+                has_exact = True
+                continue
             if not has_copyright and not skip(line, comment_prefix):
                 sys.stdout.write(progname)
                 sys.stdout.write(copyright)
