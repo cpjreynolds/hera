@@ -99,6 +99,7 @@ def insert_copyright(glob, comment_prefix):
                 sys.stdout.write(copyright)
                 sys.stdout.write(licensed)
                 has_copyright = True
+                has_exact = True
             sys.stdout.write(line)
         if not has_copyright:
             open(file, 'a').write(progname + copyright + licensed)

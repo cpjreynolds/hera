@@ -74,11 +74,11 @@ constexpr string type_of(Pat without, Pats... rest)
 }
 
 // read entire file into a string
-inline string slurp(const path& fpath, ios_base::openmode flags = ios_base::in)
+inline string slurp(const path& fpath, ios_base::openmode xflags = 0)
 {
     ifstream ifile;
     ifile.exceptions(ifstream::badbit | ifstream::failbit);
-    ifile.open(fpath, flags);
+    ifile.open(fpath, ios_base::in | xflags);
 
     string buf;
     buf.resize(fs::file_size(fpath), '\0');
@@ -86,22 +86,29 @@ inline string slurp(const path& fpath, ios_base::openmode flags = ios_base::in)
     return buf;
 }
 
-// read file into given contiguous container, returning false on error
-template<typename Container>
-bool slurp(const path& fpath, Container& buf,
-           ios_base::openmode flags = ios_base::in)
+// read file into given contiguous container.
+template<byte_buffer Container>
+void slurp(const path& fpath, Container& buf, ios_base::openmode xflags = 0)
 {
-    if (!fs::exists(fpath) && fs::is_regular_file(fpath)) {
-        return false;
-    }
-    ifstream ifile{fpath, flags};
-    if (ifile.fail()) {
-        return false;
-    }
-    buf.resize(fs::file_size(fpath), '\0');
-    ifile.read(buf.data(), buf.size());
+    /*
+     * if (!fs::exists(fpath) && fs::is_regular_file(fpath)) {
+     *     return false;
+     * }
+     */
+    ifstream ifile;
+    // ifstream ifile{fpath, flags};
+    ifile.exceptions(ifstream::badbit | ifstream::failbit);
+    ifile.open(fpath, ios_base::in | xflags);
+    /*
+     * if (ifile.fail()) {
+     *     return false;
+     * }
+     */
+    buf.resize(fs::file_size(fpath));
+    auto* dst = reinterpret_cast<char*>(ranges::data(buf));
+    ifile.read(dst, buf.size());
+    buf.resize(ifile.gcount());
     ifile.close();
-    return bool(ifile);
 }
 
 // convert UTF-8 string to UTF-32

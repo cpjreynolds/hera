@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include <hera/image.hpp>
+#include <hera/loader.hpp>
 #include <hera/gl/texture.hpp>
 
 namespace hera::gl {
@@ -23,13 +23,10 @@ Texture2d::Texture2d(const path& fpath, const TextureParams& params,
                      texture_u unit)
     : Texture{unit}
 {
-    if (!fs::exists(fpath)) {
-        throw hera::runtime_error(string(fpath.filename()) + " does not exist");
-    }
     LOG_INFO("loading texture file: {}", fpath);
-    auto [buf, size, channels] = load_image(fpath);
+    auto img = Assets::load<image_data>(fpath);
     internal_f format;
-    switch (channels) {
+    switch (img->channels) {
     case 1:
         format = internal_f::red;
         break;
@@ -47,8 +44,7 @@ Texture2d::Texture2d(const path& fpath, const TextureParams& params,
 
     bind();
     params.apply(target);
-    size_t bytes = 1uz * size.x * size.y * channels;
-    gl::allocate(target, format, size.x, size.y, span(buf.get(), bytes));
+    gl::allocate(target, format, img->size.x, img->size.y, **img);
 
     glGenerateMipmap(GL_TEXTURE_2D);
 }

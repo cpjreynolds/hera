@@ -202,6 +202,12 @@ using std::remove_pointer_t;
 using std::remove_reference_t;
 using std::same_as;
 
+template<typename T>
+concept byte_like =
+    same_as<remove_cv_t<T>, char> || same_as<remove_cv_t<T>, signed char> ||
+    same_as<remove_cv_t<T>, unsigned char> ||
+    same_as<remove_cv_t<T>, std::byte>;
+
 template<size_t I>
 using size_constant = std::integral_constant<size_t, I>;
 
@@ -210,6 +216,7 @@ concept invocable_r = requires(Fn&& fn, Args&&... args) {
     std::invoke_r<R>(std::forward<Fn>(fn), std::forward<Args>(args)...);
 };
 
+// provides the type U with the qualifiers of T
 template<typename T, typename U>
 using like_t = decltype(std::forward_like<T>(declval<U>()));
 
@@ -260,6 +267,31 @@ concept span_of =
 template<typename R>
 concept spanner = contiguous_range<R> && sized_range<R>;
 
+template<std::indirectly_readable T>
+using iter_const_reference_t =
+    std::common_reference_t<const std::iter_value_t<T>&&,
+                            std::iter_reference_t<T>>;
+
+template<ranges::range R>
+using range_const_reference_t = iter_const_reference_t<ranges::iterator_t<R>>;
+
+template<typename T>
+concept constant_iterator =
+    std::input_iterator<T> &&
+    same_as<std::iter_reference_t<T>, iter_const_reference_t<T>>;
+
+template<typename R>
+concept constant_range =
+    ranges::input_range<R> && constant_iterator<ranges::iterator_t<R>>;
+
+template<typename R>
+concept resizable_range =
+    ranges::range<R> && requires(R r, size_t n) { r.resize(n); };
+
+template<typename R>
+concept byte_buffer = contiguous_range<R> && (!constant_range<R>) &&
+                      resizable_range<R> && byte_like<range_v<R>>;
+
 template<typename T>
 struct element_type {
     using type = T;
@@ -301,6 +333,7 @@ concept array_like = same_as<element_t<T>, E> && lengthof(T{}) == N &&
 
 // size in bytes of any range that models `span_of`
 template<typename R, typename T = range_value_t<R>>
+    requires span_of<R, T>
 constexpr size_t size_bytes(const R& r)
 {
     return ranges::size(r) * sizeof(T);

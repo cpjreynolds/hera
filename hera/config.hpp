@@ -100,6 +100,12 @@ public:
         return node_wrap(_table.at_path(pat));
     }
 
+    template<typename T, toml_path P>
+    T at(P&& pat) const
+    {
+        return at(pat);
+    }
+
     template<toml_path P>
     node_wrap operator[](P&& pat) const
     {

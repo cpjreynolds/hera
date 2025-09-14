@@ -26,6 +26,7 @@ struct init {
 
     static void logging();
     static void config();
+    static void loader();
     static GLFWwindow* window();
     static void gl();
     static void error();

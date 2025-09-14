@@ -17,7 +17,7 @@
 #ifndef HERA_RENDER_MATERIAL_HPP
 #define HERA_RENDER_MATERIAL_HPP
 
-#include <hera/image.hpp>
+#include <hera/loader.hpp>
 #include <hera/gl/texture.hpp>
 #include <hera/gl/program.hpp>
 

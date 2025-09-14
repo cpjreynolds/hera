@@ -17,3 +17,11 @@ bold_oblique = "DejaVuSansMono-BoldOblique.ttf"
 [keymap]
 path = "@HERA_KEYMAP_PATH@"
 
+[[domains]]
+domain = "shaders:"
+path = "@HERA_SHADERS_PATH@"
+
+[[domains]]
+domain = "assets:"
+path = "@HERA_SHADERS_PATH@"
+
