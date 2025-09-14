@@ -6,7 +6,10 @@ out/
 build/
 build_*/
 
+# libraries not bundled
 extern/glm-*
+extern/boost-*
+
 
 .cache/
 
