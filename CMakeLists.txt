@@ -119,7 +119,6 @@ foreach(lib ${PROJECT_LIBRARIES})
 endforeach()
 endblock()
 
-
 # installation and packaging
 
 set(CPACK_GENERATOR ZIP TGZ)
@@ -132,7 +131,7 @@ if(HERA_BUNDLE)
         MACOSX_BUNDLE_INFO_PLIST "${HERA_SCRIPT_DIR}/MacOSXBundleInfo.plist.in"
         MACOSX_BUNDLE_BUNDLE_NAME "${PROJECT_NAME}"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
-        MACOSX_BUNDLE_COPYRIGHT "© 2024 Cole Reynolds"
+        MACOSX_BUNDLE_COPYRIGHT "© 2024-2025 Cole Reynolds"
         MACOSX_BUNDLE_INFO_STRING "hera"
         #MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
         MACOSX_BUNDLE_ICON_FILE "icon.icns"

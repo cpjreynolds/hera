@@ -23,5 +23,5 @@ path = "@HERA_SHADERS_PATH@"
 
 [[domains]]
 domain = "assets:"
-path = "@HERA_SHADERS_PATH@"
+path = "@HERA_ASSETS_PATH@"
 

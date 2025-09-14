@@ -1,5 +1,4 @@
 find_package(Vulkan COMPONENTS glslc REQUIRED)
-#find_program(GLSLC_EXE "glslc" REQUIRED)
 
 file(GLOB SHADERS_INPUT RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS
     *.vert
