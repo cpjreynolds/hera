@@ -19,7 +19,6 @@
 
 #include <hera/common.hpp>
 #include <hera/error.hpp>
-#include <hera/log.hpp>
 #include <hera/gl/object.hpp>
 
 namespace hera::gl {

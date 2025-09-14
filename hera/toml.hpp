@@ -52,4 +52,7 @@ concept toml_path =
 template<hera::toml_any T>
 struct fmt::formatter<T> : fmt::ostream_formatter {};
 
+template<hera::toml_any T>
+struct quill::Codec<T> : quill::DirectFormatCodec<T> {};
+
 #endif

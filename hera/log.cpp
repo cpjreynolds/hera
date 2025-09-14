@@ -19,7 +19,6 @@
 #include <hera/common.hpp>
 #include <hera/utility.hpp>
 #include <hera/init.hpp>
-#include <hera/log.hpp>
 
 #include <quill/Backend.h>
 #include <quill/Frontend.h>

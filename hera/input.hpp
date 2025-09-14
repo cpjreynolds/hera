@@ -22,7 +22,6 @@
 #include <hera/common.hpp>
 #include <hera/error.hpp>
 #include <hera/toml.hpp>
-#include <hera/log.hpp>
 #include <hera/lua.hpp>
 #include <hera/format.hpp>
 #include <hera/config.hpp>

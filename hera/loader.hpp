@@ -18,7 +18,6 @@
 #define HERA_LOADER_HPP
 
 #include <hera/common.hpp>
-#include <hera/log.hpp>
 #include <hera/error.hpp>
 
 namespace hera {

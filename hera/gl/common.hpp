@@ -21,7 +21,6 @@
 
 #include <hera/common.hpp>
 #include <hera/utility.hpp>
-#include <hera/log.hpp>
 #include <hera/error.hpp>
 // NOLINTBEGIN(bugprone-macro-*,performance-enum-size)
 namespace hera {

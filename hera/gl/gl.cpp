@@ -18,7 +18,6 @@
 #include <hera/gl/common.hpp>
 #include <hera/init.hpp>
 #include <hera/error.hpp>
-#include <hera/log.hpp>
 
 namespace hera {
 

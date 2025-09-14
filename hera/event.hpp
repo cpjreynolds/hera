@@ -18,7 +18,6 @@
 #define HERA_EVENT_HPP
 
 #include <hera/common.hpp>
-#include <hera/log.hpp>
 #include <hera/utility.hpp>
 
 // NOLINTBEGIN(cppcoreguidelines-pro-type-*)

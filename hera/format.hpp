@@ -21,7 +21,7 @@
 
 namespace hera {
 
-struct common_format_parser {
+struct format_parser {
     bool alternate = false;
 
     template<typename ParseCtx>
@@ -44,20 +44,6 @@ struct common_format_parser {
     }
 };
 
-template<typename T = void>
-struct format_parser : common_format_parser, fmt::formatter<T> {
-    template<typename ParseCtx>
-    constexpr ParseCtx::iterator parse(ParseCtx& ctx)
-    {
-        auto it = common_format_parser::parse(ctx);
-        ctx.advance_to(it);
-        return fmt::formatter<T>::parse(ctx);
-    }
-};
-
-template<>
-struct format_parser<void> : common_format_parser {};
-
-};
+} // namespace hera
 
 #endif

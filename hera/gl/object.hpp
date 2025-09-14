@@ -20,7 +20,6 @@
 #include <hera/common.hpp>
 #include <hera/gl/common.hpp>
 #include <hera/error.hpp>
-#include <hera/log.hpp>
 #include <hera/utility.hpp>
 #include <hera/gl/vertex.hpp>
 

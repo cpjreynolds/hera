@@ -16,7 +16,6 @@
 
 #include <charconv>
 
-#include <hera/log.hpp>
 #include <hera/gl/program.hpp>
 
 namespace hera::gl {

@@ -16,7 +16,6 @@
 #include <hera/common.hpp>
 #include <hera/utility.hpp>
 #include <hera/error.hpp>
-#include <hera/log.hpp>
 #include <hera/init.hpp>
 #include <hera/toml.hpp>
 #include <hera/config.hpp>

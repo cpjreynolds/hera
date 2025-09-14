@@ -18,7 +18,6 @@
 #define HERA_PROGRAMS_HPP
 
 #include <hera/common.hpp>
-#include <hera/log.hpp>
 #include <hera/format.hpp>
 #include <hera/gl/common.hpp>
 #include <hera/gl/object.hpp>

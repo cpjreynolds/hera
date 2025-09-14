@@ -16,7 +16,6 @@
 
 #include <glm/ext/matrix_clip_space.hpp>
 
-#include <hera/log.hpp>
 #include <hera/window.hpp>
 #include <hera/render/renderer.hpp>
 

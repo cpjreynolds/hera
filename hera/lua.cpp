@@ -21,7 +21,6 @@
 #include <sol/protected_function_result.hpp>
 
 #include <hera/common.hpp>
-#include <hera/log.hpp>
 #include <hera/lua.hpp>
 #include <hera/error.hpp>
 
