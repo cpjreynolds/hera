@@ -608,7 +608,7 @@ input_map::map_t input_map::from_toml(const toml::table& table)
     table.for_each([&](const toml::key& k, const toml::table& t) {
         auto&& [up, dn] = key_event::from_toml(t);
         if (up.invalid() || dn.invalid()) {
-            LOG_CRITICAL("failed to map input: {}", fmt::to_string(table));
+            LOG_ERROR("failed to map input: {}", table);
             throw hera::runtime_error("failed to map input");
         }
         mapping.emplace(up, input_action{k, false});

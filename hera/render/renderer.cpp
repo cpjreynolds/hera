@@ -14,8 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include <glm/ext/matrix_clip_space.hpp>
-
 #include <hera/window.hpp>
 #include <hera/render/renderer.hpp>
 

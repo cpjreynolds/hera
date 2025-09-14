@@ -95,10 +95,12 @@ template<>
 struct fmt::formatter<hera::Renderer> : hera::format_parser {
     auto format(const hera::Renderer& val, auto& ctx) const
     {
-        auto output = ctx.out();
-        fmt::format_to(output, "Renderer:\n{}", val.shaders);
-        return output;
+        return fmt::format_to(ctx.out(), "Renderer:\n{}", val.shaders);
     }
+};
+
+template<>
+struct quill::Codec<hera::Renderer> : quill::DirectFormatCodec<hera::Renderer> {
 };
 
 #endif
