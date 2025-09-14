@@ -683,8 +683,8 @@ struct fmt::formatter<hera::input_action> : formatter<std::string_view> {
 };
 
 template<>
-struct fmt::formatter<hera::input_map>
-    : hera::format_parser<hera::input_map::map_t> {
+struct fmt::formatter<hera::input_map> : hera::format_parser,
+                                         formatter<hera::input_map::map_t> {
     auto format(const hera::input_map& val, auto& ctx) const
     {
         if (alternate) {
@@ -698,7 +698,7 @@ struct fmt::formatter<hera::input_map>
 };
 
 template<>
-struct fmt::formatter<hera::input_atlas> : hera::format_parser<> {
+struct fmt::formatter<hera::input_atlas> : hera::format_parser {
     auto format(const hera::input_atlas& val, auto& ctx) const
     {
         auto out = ctx.out();

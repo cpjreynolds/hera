@@ -68,7 +68,8 @@ if(XCODE)
 endif()
 
 # ==[boost]==
-#add_subdirectory(boost-1.84.0)
+set(BOOST_INCLUDE_LIBRARIES container_hash CACHE BOOL "" FORCE)
+add_subdirectory(boost-1.89.0 EXCLUDE_FROM_ALL)
 
 # ==[quill]==
 add_subdirectory(quill)

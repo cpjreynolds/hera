@@ -63,6 +63,8 @@
 
 #include <oneapi/tbb/concurrent_queue.h>
 
+#include <boost/container_hash/hash.hpp>
+
 // needs to be in global for specializations
 namespace fmt = fmtquill;
 
@@ -345,7 +347,7 @@ constexpr size_t size_bytes(const R& r)
 
 // transparent hasher
 template<typename T>
-struct trans_hash : std::hash<T> {
+struct trans_hash : boost::hash<T> {
     using is_transparent = void;
 };
 

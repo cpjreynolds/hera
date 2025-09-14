@@ -502,7 +502,7 @@ struct std::tuple_size<hera::gl::Pipeline> : std::integral_constant<size_t, 2> {
 };
 
 template<>
-struct fmt::formatter<hera::gl::Shader> : hera::format_parser<> {
+struct fmt::formatter<hera::gl::Shader> : hera::format_parser {
     auto format(const hera::gl::Shader& val, auto& ctx) const
     {
         auto output = ctx.out();
@@ -516,7 +516,7 @@ struct fmt::formatter<hera::gl::Shader> : hera::format_parser<> {
 };
 
 template<>
-struct fmt::formatter<hera::gl::Pipeline> : hera::format_parser<> {
+struct fmt::formatter<hera::gl::Pipeline> : hera::format_parser {
     auto format(const hera::gl::Pipeline& val, auto& ctx) const
     {
         auto output = ctx.out();
@@ -531,7 +531,7 @@ struct fmt::formatter<hera::gl::Pipeline> : hera::format_parser<> {
 };
 
 template<>
-struct fmt::formatter<hera::gl::Shaders> : hera::format_parser<> {
+struct fmt::formatter<hera::gl::Shaders> : hera::format_parser {
     auto format(const hera::gl::Shaders& val, auto& ctx) const
     {
         auto output = ctx.out();

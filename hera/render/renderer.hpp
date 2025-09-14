@@ -92,7 +92,7 @@ public:
 } // namespace hera
 
 template<>
-struct fmt::formatter<hera::Renderer> : hera::format_parser<> {
+struct fmt::formatter<hera::Renderer> : hera::format_parser {
     auto format(const hera::Renderer& val, auto& ctx) const
     {
         auto output = ctx.out();

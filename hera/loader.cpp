@@ -117,10 +117,6 @@ file_cache::value_type file_cache::load(const path& key) const
     auto sptr = std::make_shared<const buffer_type>(std::move(buf));
     unique_lock lk{mtx};
     cache[key] = {.buf = sptr, .mtime = cur_mtime};
-
-    for (const auto& [k, v] : cache) {
-        LOG_DEBUG("file_cache: {} : {}", k, v.buf->size());
-    }
     return sptr;
 }
 

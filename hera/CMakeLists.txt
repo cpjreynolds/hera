@@ -24,6 +24,7 @@ set(HERA_LIBRARIES
     sol2::sol2
     freetype
     imgui
+    Boost::container_hash
 )
 if (HERA_BUILD_ASSIMP)
     list(APPEND HERA_LIBRARIES assimp)

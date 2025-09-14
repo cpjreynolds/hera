@@ -191,7 +191,7 @@ template<typename T>
     requires hera::gl::is_vertex<T> &&
              hera::gl::detail::formattable_attributes_v<
                  typename hera::gl::vertex<T>::type>
-struct fmt::formatter<T> : hera::format_parser<> {
+struct fmt::formatter<T> : hera::format_parser {
     template<size_t... I>
     auto format_impl(const T& v, auto& ctx, std::index_sequence<I...>) const
     {
@@ -214,7 +214,7 @@ struct fmt::formatter<T> : hera::format_parser<> {
 };
 
 template<>
-struct fmt::formatter<hera::gl::AttributeFormat> : hera::format_parser<> {
+struct fmt::formatter<hera::gl::AttributeFormat> : hera::format_parser {
     auto format(const hera::gl::AttributeFormat& val, auto& ctx) const
     {
         auto tystr = hera::gl::gl_str(val.type);
@@ -227,7 +227,7 @@ struct fmt::formatter<hera::gl::AttributeFormat> : hera::format_parser<> {
 
 template<typename T>
     requires hera::gl::is_vertex<T> && std::formattable<T, char>
-struct fmt::formatter<T> : hera::format_parser<> {
+struct fmt::formatter<T> : hera::format_parser {
     auto format(const T& v, auto& ctx) const
     {
         return fmt::format_to(ctx.out(), "{}", v);
