@@ -36,7 +36,7 @@ hera_option(NICEABORT "terminate with exit(0)" ON)
 hera_option(APPLE_FUCKERY "fix apple VSYNC cockups" ${APPLE})
 hera_option(DEBUG "debug features" ON)
 
-set(HERA_SCRIPT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tools")
+set(HERA_TOOLS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tools")
 
 if(HERA_BUNDLE)
     set(HERA_RESOURCE_DIR "$<TARGET_BUNDLE_DIR_NAME:hera>/Contents/Resources")
@@ -47,13 +47,13 @@ endif()
 if(HERA_CHECK_COPYRIGHT)
     find_package(Python COMPONENTS Interpreter REQUIRED)
     add_custom_target(check_copyright ALL
-        COMMAND ${Python_EXECUTABLE} ${HERA_SCRIPT_DIR}/add_copyright.py --check
+        COMMAND ${Python_EXECUTABLE} ${HERA_TOOLS_DIR}/add_copyright.py --check
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "check copyright"
     )
 
     add_custom_target(add_copyright
-        COMMAND ${Python_EXECUTABLE} ${HERA_SCRIPT_DIR}/add_copyright.py
+        COMMAND ${Python_EXECUTABLE} ${HERA_TOOLS_DIR}/add_copyright.py
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
         COMMENT "add copyright"
     )
@@ -89,9 +89,7 @@ endif()
 add_subdirectory(extern)
 
 # ==[project]==
-add_subdirectory(shaders)
 add_subdirectory(assets)
-add_subdirectory(config)
 
 add_subdirectory(hera)
 
@@ -128,7 +126,7 @@ if(HERA_BUNDLE)
         ${PROJECT_NAME}
         PROPERTIES
         MACOSX_BUNDLE TRUE
-        MACOSX_BUNDLE_INFO_PLIST "${HERA_SCRIPT_DIR}/MacOSXBundleInfo.plist.in"
+        MACOSX_BUNDLE_INFO_PLIST "${HERA_TOOLS_DIR}/MacOSXBundleInfo.plist.in"
         MACOSX_BUNDLE_BUNDLE_NAME "${PROJECT_NAME}"
         MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
         MACOSX_BUNDLE_COPYRIGHT "© 2024-2025 Cole Reynolds"

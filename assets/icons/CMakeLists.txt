@@ -1,4 +1,3 @@
-
 if(HERA_BUNDLE)
     install(
         FILES icon.icns

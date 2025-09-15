@@ -1,11 +1,11 @@
 [logging]
 level = "debug"
 
-[shaders]
-path = "@HERA_SHADERS_PATH@"
-
 [assets]
 path = "@HERA_ASSETS_PATH@"
+
+[assets.shaders]
+path = "shaders"
 
 [assets.fonts]
 path = "fonts/dejavu"
@@ -16,10 +16,6 @@ bold_oblique = "DejaVuSansMono-BoldOblique.ttf"
 
 [keymap]
 path = "@HERA_KEYMAP_PATH@"
-
-[[domains]]
-domain = "shaders:"
-path = "@HERA_SHADERS_PATH@"
 
 [[domains]]
 domain = "assets:"
