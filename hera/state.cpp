@@ -116,10 +116,8 @@ void State::on_action(input_action act)
 
 void State::prologue()
 {
-    path assetpath = config["assets.path"];
     gl::checkerror();
-    Cube mastercube{assetpath / "container2.png",
-                    assetpath / "container2_specular.png"};
+    Cube mastercube{"data:/container2.png", "data:/container2_specular.png"};
     gl::checkerror();
 
     std::mt19937 rgen{std::random_device{}()};

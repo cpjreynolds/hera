@@ -30,7 +30,7 @@ class path_resolver {
 
 public:
     path_resolver() = default;
-    path_resolver(path root) : _root{std::move(root)} {}
+    path_resolver(path root);
 
     void push(const path& p) { _patstack.push_back(p); }
     void pop()

@@ -20,6 +20,7 @@
 #include <hera/init.hpp>
 #include <hera/input.hpp>
 #include <hera/config.hpp>
+#include <hera/loader.hpp>
 
 namespace hera {
 
@@ -36,9 +37,7 @@ void init::ui()
 
     Config config{};
 
-    path fontpath = path(config["assets.path"]) /
-                    path(config["assets.fonts.path"]) /
-                    path(config["assets.fonts.regular"]);
+    path fontpath = path_resolver::get().apply(config["font.regular"]);
 
     auto font = io.Fonts->AddFontFromFileTTF(fontpath.native().c_str(), 14);
     io.FontDefault = font;

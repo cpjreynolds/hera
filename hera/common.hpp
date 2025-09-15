@@ -63,6 +63,7 @@
 #include <quill/LogMacros.h>
 #include <quill/std/FilesystemPath.h>
 #include <quill/std/Vector.h>
+#include <quill/std/UnorderedMap.h>
 #include <quill/bundled/fmt/format.h>
 #include <quill/bundled/fmt/ostream.h>
 #include <quill/DirectFormatCodec.h>

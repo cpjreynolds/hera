@@ -42,6 +42,27 @@ struct deinit {
     static void ui();
 };
 
+struct init_handle {
+    init_handle()
+    {
+        init::logging();
+        init::error();
+        init::config();
+        init::loader();
+        init::window();
+        init::gl();
+        init::input();
+        init::ui();
+    }
+
+    ~init_handle()
+    {
+        deinit::ui();
+        deinit::input();
+        deinit::window();
+    }
+};
+
 } // namespace hera
 
 #endif

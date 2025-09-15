@@ -27,22 +27,57 @@ namespace hera {
 namespace {
 // 'domain' (assets:, shaders:, etc)
 static hash_map<path, path> domains;
+
+optional<path> resolve_domain(const path& p)
+{
+    if (p.empty())
+        return nullopt;
+
+    auto head = *p.begin();
+    if (head.native().ends_with(':')) {
+        // have a path starting with a domain
+        if (auto val = domains.find(head); val != domains.cend()) {
+            return val->second / p.lexically_relative(head);
+        }
+        else {
+            LOG_ERROR("invalid domain: {}", head);
+            throw runtime_error{"invalid domain"};
+        }
+    }
+    return nullopt;
+}
+
+void expand_domains(hash_map<path, path>& doms)
+{
+    for (auto& node : doms) {
+        while (auto newval = resolve_domain(node.second)) {
+            node.second = *newval;
+        }
+    }
+}
 } // namespace
 
 void init::loader()
 {
     Config cfg;
 
-    const toml::array& cfg_doms = cfg.at("domains");
+    const toml::array& cfg_doms = cfg.at("domain");
     cfg_doms.for_each([](const toml::table& elt) {
-        elt.at("domain").visit([&](const toml::value<string>& dom) {
+        elt.at("id").visit([&](const toml::value<string>& dom) {
             elt.at("path").visit([&](const toml::value<string>& pat) {
                 domains.insert({*dom, *pat});
                 LOG_DEBUG("registered domain: {} = {}", *dom, *pat);
             });
         });
     });
+
+    expand_domains(domains);
+
+    LOG_DEBUG("domains: {}", domains);
 }
+
+path_resolver::path_resolver(path root)
+    : _root{resolve_domain(root).value_or(std::move(root))} {};
 
 path path_resolver::current() const
 {
@@ -59,37 +94,33 @@ path path_resolver::apply(const path& pat) const
         throw runtime_error{"empty path"};
 
     path normed = pat.lexically_normal();
+    auto head = pat.begin();
 
     if (ranges::starts_with(normed, _root)) {
         // already a key
         return normed;
     }
 
-    path result;
-    path head = *normed.begin();
-
-    if (head.native().back() == ':') {
-        if (auto val = domains.find(head); val != domains.cend()) {
-            result = val->second;
+    if (head->native().back() == ':') {
+        if (auto val = domains.find(*head); val != domains.cend()) {
+            return val->second / normed.lexically_relative(*head);
         }
         else {
-            LOG_ERROR("invalid domain: {}", head);
+            LOG_ERROR("invalid domain: {}", *head);
             throw runtime_error{"invalid domain"};
         }
     }
-    else {
-        result = _root;
+    path result = _root;
+    for (const auto& p : _patstack) {
+        result /= p;
     }
-    for (const auto& pat : _patstack) {
-        result /= pat;
-    }
-    result /= normed;
+    result /= pat;
     return result;
 }
 
 path_resolver& path_resolver::get()
 {
-    thread_local path_resolver globl{Config{}.at<path>("assets.path")};
+    thread_local path_resolver globl{"assets:/"};
     return globl;
 }
 

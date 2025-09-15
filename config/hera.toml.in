@@ -1,23 +1,28 @@
 [logging]
 level = "debug"
 
-[assets]
+[font]
+regular = "fonts:/dejavu/DejaVuSansMono.ttf"
+bold = "fonts:/dejavu/DejaVuSansMono-Bold.ttf"
+oblique = "fonts:/dejavu/DejaVuSansMono-Oblique.ttf"
+bold_oblique = "fonts:/dejavu/DejaVuSansMono-BoldOblique.ttf"
+
+[[domain]]
+id = "config:"
+path = "."
+
+[[domain]]
+id = "assets:"
 path = "@HERA_ASSETS_PATH@"
 
-[assets.shaders]
-path = "shaders"
+[[domain]]
+id = "shaders:"
+path = "assets:/shaders"
 
-[assets.fonts]
-path = "fonts/dejavu"
-regular = "DejaVuSansMono.ttf"
-bold = "DejaVuSansMono-Bold.ttf"
-oblique = "DejaVuSansMono-Oblique.ttf"
-bold_oblique = "DejaVuSansMono-BoldOblique.ttf"
+[[domain]]
+id = "data:"
+path = "assets:/data"
 
-[keymap]
-path = "@HERA_KEYMAP_PATH@"
-
-[[domains]]
-domain = "assets:"
-path = "@HERA_ASSETS_PATH@"
-
+[[domain]]
+id = "fonts:"
+path = "assets:/fonts"

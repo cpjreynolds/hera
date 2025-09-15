@@ -188,9 +188,7 @@ static void add_char(Alphabet& alpha, const FT_GlyphSlotRec& glyph)
 Alphabet::Alphabet(const Config& config)
 {
     gl::checkerror();
-    path fontpath = path(config["assets.path"]) /
-                    path(config["assets.fonts.path"]) /
-                    path(config["assets.fonts.regular"]);
+    path fontpath = config["font.regular"];
     FTLibrary lib;
     Face face = lib.new_face(fontpath.native());
     face.char_size(16l * 64, 0);

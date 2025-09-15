@@ -90,6 +90,7 @@ add_subdirectory(extern)
 
 # ==[project]==
 add_subdirectory(assets)
+add_subdirectory(config)
 
 add_subdirectory(hera)
 

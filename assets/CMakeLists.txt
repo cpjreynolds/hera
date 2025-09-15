@@ -59,25 +59,17 @@ endfunction()
 
 
 
-# file(GLOB_RECURSE ASSETS_INPUT
-    # RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} CONFIGURE_DEPENDS
-    # *)
-# list(FILTER ASSETS_INPUT EXCLUDE REGEX ".*CMakeLists\.txt$")
-# list(FILTER ASSETS_INPUT EXCLUDE REGEX ".*\.DS_Store$")
-
-#add_custom_target(assets DEPENDS ${ASSETS_OUTPUT} SOURCES ${ASSETS_INPUT})
-
 # propagate necessary variables
 set(ASSETS_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(ASSETS_INSTALL_DIR ${HERA_RESOURCES_DIR}/assets)
 
 # platform-specific icon stuff
 add_subdirectory(icons)
-add_subdirectory(renderdata)
+add_subdirectory(data)
 add_subdirectory(shaders)
 add_subdirectory(fonts)
 
 add_custom_target(assets)
-add_dependencies(assets renderdata fonts shaders)
+add_dependencies(assets data fonts shaders)
 
 return(PROPAGATE ASSETS_OUTPUT_DIR ASSETS_INSTALL_DIR)

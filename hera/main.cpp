@@ -35,20 +35,10 @@ try
     // is this a terrible idea?
     std::locale::global(std::locale(""));
 
-    init::logging();
-    init::error();
-    init::config();
-    init::window();
-    init::gl();
-    init::input();
-    init::ui();
+    init_handle inits;
 
     shared_ptr<State> state = State::create();
     state->run();
-
-    deinit::ui();
-    deinit::input();
-    deinit::window();
 
     return 0;
 }

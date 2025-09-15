@@ -16,6 +16,7 @@
 
 #include <hera/window.hpp>
 #include <hera/render/renderer.hpp>
+#include <hera/loader.hpp>
 
 namespace hera {
 
@@ -23,9 +24,9 @@ Renderer::Renderer(const Config& config, Private)
     : _window{glfwGetCurrentContext()}
 {
     LOG_DEBUG("init renderer");
-    path shaderpath = config["shaders.path"];
+    path shaderpath = path_resolver::get().apply("shaders:/");
     shaders.load(shaderpath);
-    LOG_INFO("{}", fmt::to_string(*this));
+    LOG_INFO("{}", *this);
     LOG_DEBUG("init renderer done");
 }
 
