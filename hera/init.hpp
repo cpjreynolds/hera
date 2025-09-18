@@ -24,12 +24,14 @@ namespace hera {
 struct init {
     init() = delete;
 
+    // declared in the order they need to be called.
     static void logging();
+    static void error();
     static void config();
+    static void link();
     static void loader();
     static GLFWwindow* window();
     static void gl();
-    static void error();
     static void input();
     static void ui();
 };
@@ -48,6 +50,7 @@ struct init_handle {
         init::logging();
         init::error();
         init::config();
+        init::link();
         init::loader();
         init::window();
         init::gl();

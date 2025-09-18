@@ -19,36 +19,9 @@
 
 #include <hera/common.hpp>
 #include <hera/error.hpp>
+#include <hera/link.hpp>
 
 namespace hera {
-
-// each thread has its own path context to simplify loading from nested
-// directories without passing around file paths everywhere.
-class path_resolver {
-    path _root;
-    vector<path> _patstack;
-
-public:
-    path_resolver() = default;
-    path_resolver(path root);
-
-    void push(const path& p) { _patstack.push_back(p); }
-    void pop()
-    {
-        if (!_patstack.empty())
-            _patstack.pop_back();
-    }
-    void clear() { _patstack.clear(); }
-    path current() const;
-    path relative(const path& p) const { return fs::relative(p, _root); }
-    path apply(const path&) const;
-
-    const path& root() const { return _root; }
-    void root(path newroot) { _root = std::move(newroot); }
-
-    // returns the global (but thread local) instance
-    static path_resolver& get();
-};
 
 // low-level byte-cache interface
 class byte_cache {
@@ -57,14 +30,14 @@ public:
     using value_type = shared_ptr<const buffer_type>;
 
     // const to indicate thread safety
-    virtual value_type load(const path&) const = 0;
+    virtual value_type load(const link&) const = 0;
 
     virtual ~byte_cache() = default;
 };
 
 class file_cache : public byte_cache {
 public:
-    value_type load(const path& p) const override;
+    value_type load(const link& p) const override;
 
     static file_cache* get();
 
@@ -79,14 +52,14 @@ private:
 };
 
 template<typename T>
-struct loader {
+struct importer {
     // load from bytes.
     static T load_from(span<const uint8_t>)
     {
         static_assert(false, "must specialize decoder::load");
     }
 
-    static T load_from(const path&)
+    static T load_from(const link&)
     {
         static_assert(false, "must specialize decoder::load");
     }
@@ -94,7 +67,7 @@ struct loader {
 
 template<typename T, typename From>
 concept loadable_from = requires(From from) {
-    { loader<T>::load_from(from) } -> same_as<T>;
+    { importer<T>::load_from(from) } -> same_as<T>;
 };
 
 template<typename T>
@@ -114,9 +87,9 @@ public:
 
     explicit asset_cache(byte_cache* bc) : bcache{bc} {}
 
-    shared_ptr<T> load(const path& pat) const
+    shared_ptr<T> load(const link& pat) const
     {
-        auto key = path_resolver::get().apply(pat);
+        auto key = pat.resolve();
 
         // cache check
         {
@@ -132,28 +105,28 @@ public:
         }
         // missing or expired
         LOG_DEBUG("asset_cache load: {}", key);
-        return load_into(key);
+        return load_into(pat);
     }
 
 private:
-    shared_ptr<T> load_into(const path& key) const
+    shared_ptr<T> load_into(const link& pat) const
         requires loadable_from_bytes<T>
     {
         // load through bcache
-        auto bytes = bcache->load(key);
-        shared_ptr<T> ptr{new T{loader<T>::load_from(*bytes)}};
+        auto bytes = bcache->load(pat);
+        shared_ptr<T> ptr{new T{importer<T>::load_from(*bytes)}};
         unique_lock lk{mtx};
-        cache[key] = ptr;
+        cache[pat.resolve()] = ptr;
         return ptr;
     }
 
-    shared_ptr<T> load_into(const path& key) const
+    shared_ptr<T> load_into(const link& lnk) const
         requires(!loadable_from_bytes<T>)
     {
         // load from filepath
-        shared_ptr<T> ptr{new T{loader<T>::load_from(key)}};
+        shared_ptr<T> ptr{new T{importer<T>::load_from(lnk)}};
         unique_lock lk{mtx};
-        cache[key] = ptr;
+        cache[lnk.resolve()] = ptr;
         return ptr;
     }
 };
@@ -186,8 +159,8 @@ struct image_data {
 };
 
 template<>
-struct loader<image_data> {
-    static image_data load_from(const path& p);
+struct importer<image_data> {
+    static image_data load_from(const link& p);
     static image_data load_from(span<const uint8_t> bytes);
 };
 

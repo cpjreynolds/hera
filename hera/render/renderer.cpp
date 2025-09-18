@@ -16,15 +16,14 @@
 
 #include <hera/window.hpp>
 #include <hera/render/renderer.hpp>
-#include <hera/loader.hpp>
+#include <hera/link.hpp>
 
 namespace hera {
 
-Renderer::Renderer(const Config& config, Private)
-    : _window{glfwGetCurrentContext()}
+Renderer::Renderer(const Config&, Private) : _window{glfwGetCurrentContext()}
 {
     LOG_DEBUG("init renderer");
-    path shaderpath = path_resolver::get().apply("shaders:/");
+    path shaderpath = link::apply("shaders:/");
     shaders.load(shaderpath);
     LOG_INFO("{}", *this);
     LOG_DEBUG("init renderer done");

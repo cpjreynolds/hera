@@ -28,106 +28,15 @@ namespace {
 // 'domain' (assets:, shaders:, etc)
 static hash_map<path, path> domains;
 
-optional<path> resolve_domain(const path& p)
-{
-    if (p.empty())
-        return nullopt;
-
-    auto head = *p.begin();
-    if (head.native().ends_with(':')) {
-        // have a path starting with a domain
-        if (auto val = domains.find(head); val != domains.cend()) {
-            return val->second / p.lexically_relative(head);
-        }
-        else {
-            LOG_ERROR("invalid domain: {}", head);
-            throw runtime_error{"invalid domain"};
-        }
-    }
-    return nullopt;
-}
-
-void expand_domains(hash_map<path, path>& doms)
-{
-    for (auto& node : doms) {
-        while (auto newval = resolve_domain(node.second)) {
-            node.second = *newval;
-        }
-    }
-}
 } // namespace
 
-void init::loader()
-{
-    Config cfg;
-
-    const toml::array& cfg_doms = cfg.at("domain");
-    cfg_doms.for_each([](const toml::table& elt) {
-        elt.at("id").visit([&](const toml::value<string>& dom) {
-            elt.at("path").visit([&](const toml::value<string>& pat) {
-                domains.insert({*dom, *pat});
-                LOG_DEBUG("registered domain: {} = {}", *dom, *pat);
-            });
-        });
-    });
-
-    expand_domains(domains);
-
-    LOG_DEBUG("domains: {}", domains);
-}
-
-path_resolver::path_resolver(path root)
-    : _root{resolve_domain(root).value_or(std::move(root))} {};
-
-path path_resolver::current() const
-{
-    path rv = _root;
-    for (const auto& pat : _patstack) {
-        rv /= pat;
-    }
-    return rv;
-}
-
-path path_resolver::apply(const path& pat) const
-{
-    if (pat.empty())
-        throw runtime_error{"empty path"};
-
-    path normed = pat.lexically_normal();
-    auto head = pat.begin();
-
-    if (ranges::starts_with(normed, _root)) {
-        // already a key
-        return normed;
-    }
-
-    if (head->native().back() == ':') {
-        if (auto val = domains.find(*head); val != domains.cend()) {
-            return val->second / normed.lexically_relative(*head);
-        }
-        else {
-            LOG_ERROR("invalid domain: {}", *head);
-            throw runtime_error{"invalid domain"};
-        }
-    }
-    path result = _root;
-    for (const auto& p : _patstack) {
-        result /= p;
-    }
-    result /= pat;
-    return result;
-}
-
-path_resolver& path_resolver::get()
-{
-    thread_local path_resolver globl{"assets:/"};
-    return globl;
-}
+void init::loader() {}
 
 // ====[file_cache]====
 
-file_cache::value_type file_cache::load(const path& key) const
+file_cache::value_type file_cache::load(const link& pat) const
 {
+    auto key = pat.resolve();
     auto cur_mtime = fs::last_write_time(key);
 
     // cache check
@@ -157,12 +66,12 @@ file_cache* file_cache::get()
     return &globl;
 }
 
-image_data loader<image_data>::load_from(const path& p)
+image_data importer<image_data>::load_from(const link& p)
 {
     LOG_DEBUG("loading image: {}", p);
     ivec2 size;
     int channels;
-    auto data = stbi_load(p.c_str(), &size.x, &size.y, &channels, 0);
+    auto data = stbi_load(p.resolve().c_str(), &size.x, &size.y, &channels, 0);
     if (!data) {
         LOG_ERROR("stbi error: {}", stbi_failure_reason());
         throw runtime_error{"stbi error"};
@@ -172,7 +81,7 @@ image_data loader<image_data>::load_from(const path& p)
             .channels = channels};
 }
 
-image_data loader<image_data>::load_from(span<const uint8_t> bytes)
+image_data importer<image_data>::load_from(span<const uint8_t> bytes)
 {
     ivec2 size;
     int channels;

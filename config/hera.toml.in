@@ -8,21 +8,21 @@ oblique = "fonts:/dejavu/DejaVuSansMono-Oblique.ttf"
 bold_oblique = "fonts:/dejavu/DejaVuSansMono-BoldOblique.ttf"
 
 [[domain]]
-id = "config:"
+id = "config"
 path = "."
 
 [[domain]]
-id = "assets:"
+id = "assets"
 path = "@HERA_ASSETS_PATH@"
 
 [[domain]]
-id = "shaders:"
+id = "shaders"
 path = "assets:/shaders"
 
 [[domain]]
-id = "data:"
+id = "data"
 path = "assets:/data"
 
 [[domain]]
-id = "fonts:"
+id = "fonts"
 path = "assets:/fonts"

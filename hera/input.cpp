@@ -19,7 +19,7 @@
 #include <hera/init.hpp>
 #include <hera/config.hpp>
 #include <hera/ui.hpp>
-#include <hera/loader.hpp>
+#include <hera/link.hpp>
 
 using scancode_t = hera::key_event::scancode_t;
 using modifier_t = hera::key_event::modifier_t;
@@ -657,7 +657,7 @@ input_atlas* input_atlas::global_atlas = nullptr;
 void input_atlas::init()
 {
     LOG_DEBUG("init input_atlas");
-    auto keymap_path = path_resolver::get().apply("config:/keymap.toml");
+    auto keymap_path = link::apply("config:/keymap.toml");
     if (keymap_path.empty()) {
         throw hera::runtime_error("no keymap path");
     }
