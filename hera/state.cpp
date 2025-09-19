@@ -150,6 +150,7 @@ void State::prologue()
     plights.push_back(PointLight{{-4.0, 2.0, -12.0}});
     plights.push_back(PointLight{{0.0, 0.0, -3.0}});
 
+    Cube othercube{"data:/container2.png", "data:/container2_specular.png"};
     do_input();
     gl::checkerror();
     renderer->pipeline("scene");

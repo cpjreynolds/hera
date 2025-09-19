@@ -17,26 +17,27 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include <hera/loader.hpp>
-#include <hera/init.hpp>
-#include <hera/config.hpp>
-#include <hera/utility.hpp>
+#include <hera/image.hpp>
+#include <hera/error.hpp>
 
 namespace hera {
 
-void init::loader() {}
-
-image_data importer<image_data>::load_from(const link& p)
+cached_type_t<image_data> asset<image_data>::load_from(const link& p)
 {
     LOG_DEBUG("loading image: {}", p);
-    ivec2 size;
-    int channels;
-    auto data = stbi_load(p.resolve().c_str(), &size.x, &size.y, &channels, 0);
+    // ivec2 size;
+    // int channels;
+    auto obj = std::make_shared_for_overwrite<image_data>();
+    auto data = stbi_load(p.resolve().c_str(), &obj->size.x, &obj->size.y,
+                          &obj->channels, 0);
     if (!data) {
         LOG_ERROR("stbi error: {}", stbi_failure_reason());
         throw runtime_error{"stbi error"};
     }
-    return {.buf{data}, .size = size, .channels = channels};
+    obj->buf.reset(data);
+    return obj;
+    // return shared_ptr<image_data>{
+    // new image_data{.buf{data}, .size = size, .channels = channels}};
 }
 
 } // namespace hera

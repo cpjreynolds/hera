@@ -29,7 +29,6 @@ struct init {
     static void error();
     static void config();
     static void link();
-    static void loader();
     static GLFWwindow* window();
     static void gl();
     static void input();
@@ -39,9 +38,9 @@ struct init {
 struct deinit {
     deinit() = delete;
 
+    static void ui();
     static void input();
     static void window();
-    static void ui();
 };
 
 struct init_handle {
@@ -51,7 +50,6 @@ struct init_handle {
         init::error();
         init::config();
         init::link();
-        init::loader();
         init::window();
         init::gl();
         init::input();

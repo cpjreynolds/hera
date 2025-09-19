@@ -14,28 +14,32 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#ifndef HERA_RENDER_MATERIAL_HPP
-#define HERA_RENDER_MATERIAL_HPP
+#ifndef HERA_IMAGE_HPP
+#define HERA_IMAGE_HPP
 
+#include <hera/common.hpp>
 #include <hera/assets.hpp>
-#include <hera/gl/texture.hpp>
-#include <hera/gl/program.hpp>
 
 namespace hera {
 
-struct Material {
-    gl::Texture2d diffuse;
-    gl::Texture2d specular;
-    float shine;
+struct image_data {
+    struct deleter {
+        void operator()(uint8_t* p) const { ::free(p); }
+    };
+    unique_ptr<uint8_t, deleter> buf;
+    ivec2 size;
+    int channels;
 
-    Material(gl::Texture2d diff, gl::Texture2d spec, float shine)
-        : diffuse{std::move(diff)},
-          specular{std::move(spec)},
-          shine{shine} {};
+    size_t size_bytes() const { return 1uz * size.x * size.y * channels; }
 
-    void load_into(const string& root, const gl::Pipeline&) const;
+    span<uint8_t> operator*() const { return span{buf.get(), size_bytes()}; }
 };
 
-} // namespace hera
+template<>
+struct asset<image_data> {
+    shared_ptr<image_data> load_from(const link& p);
+};
+
+}; // namespace hera
 
 #endif

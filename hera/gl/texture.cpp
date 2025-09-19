@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-#include <hera/loader.hpp>
+#include <hera/image.hpp>
 #include <hera/gl/texture.hpp>
 
 namespace hera::gl {
@@ -23,7 +23,7 @@ Texture2d::Texture2d(const path& fpath, const TextureParams& params,
                      texture_u unit)
     : Texture{unit}
 {
-    auto img = assets::load<image_data>(fpath);
+    auto img = assets::get<image_data>(fpath);
     internal_f format;
     switch (img->channels) {
     case 1:

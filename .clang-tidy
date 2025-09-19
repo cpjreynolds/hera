@@ -9,6 +9,7 @@ Checks: >
   readability-*
   cppcoreguidelines-*,
   -modernize-use-trailing-return-type,
+  -modernize-make-shared,
   -modernize-use-nodiscard,
   -cppcoreguidelines-avoid-magic-numbers,
   -readability-identifier-naming,

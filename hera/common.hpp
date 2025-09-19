@@ -205,9 +205,12 @@ using oneapi::tbb::concurrent_queue;
  * ==[[concepts and traits]]==
  */
 using std::convertible_to;
+using std::copy_constructible;
 using std::decay_t;
+using std::default_initializable;
 using std::derived_from;
 using std::invocable;
+using std::move_constructible;
 using std::remove_const_t;
 using std::remove_cv_t;
 using std::remove_cvref_t;
@@ -229,12 +232,20 @@ concept invocable_r = requires(Fn&& fn, Args&&... args) {
     std::invoke_r<R>(std::forward<Fn>(fn), std::forward<Args>(args)...);
 };
 
+template<typename T>
+concept contextually_boolean = requires(T t) { t ? true : false; };
+
 // provides the type U with the qualifiers of T
 template<typename T, typename U>
 using like_t = decltype(std::forward_like<T>(declval<U>()));
 
 template<typename T, typename U>
 using copy_cv = remove_reference_t<like_t<T, U>>;
+
+template<typename T, typename U>
+concept dereferences_to = requires(T& t) {
+    { *t } -> convertible_to<U>;
+};
 
 /*
  * ==[tuple concepts and traits]==
