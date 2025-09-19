@@ -19,7 +19,6 @@
 
 #include <hera/common.hpp>
 #include <hera/error.hpp>
-#include <hera/format.hpp>
 #include <hera/gl/common.hpp>
 #include <hera/gl/detail.hpp>
 

@@ -23,7 +23,6 @@
 #include <hera/error.hpp>
 #include <hera/toml.hpp>
 #include <hera/lua.hpp>
-#include <hera/format.hpp>
 #include <hera/config.hpp>
 #include <hera/event.hpp>
 

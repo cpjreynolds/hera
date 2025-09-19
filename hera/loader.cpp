@@ -24,47 +24,7 @@
 
 namespace hera {
 
-namespace {
-// 'domain' (assets:, shaders:, etc)
-static hash_map<path, path> domains;
-
-} // namespace
-
 void init::loader() {}
-
-// ====[file_cache]====
-
-file_cache::value_type file_cache::load(const link& pat) const
-{
-    auto key = pat.resolve();
-    auto cur_mtime = fs::last_write_time(key);
-
-    // cache check
-    {
-        shared_lock lk{mtx};
-        if (auto it = cache.find(key); it != cache.end()) {
-            if (it->second.mtime == cur_mtime) {
-                // no update
-                LOG_DEBUG("file cache hit: {}", key);
-                return it->second.buf;
-            }
-        }
-    }
-    // no dice. load it
-    LOG_DEBUG("file_cache load: {}", key);
-    buffer_type buf;
-    slurp(key, buf, ios_base::binary);
-    auto sptr = std::make_shared<const buffer_type>(std::move(buf));
-    unique_lock lk{mtx};
-    cache[key] = {.buf = sptr, .mtime = cur_mtime};
-    return sptr;
-}
-
-file_cache* file_cache::get()
-{
-    static file_cache globl;
-    return &globl;
-}
 
 image_data importer<image_data>::load_from(const link& p)
 {
@@ -76,24 +36,7 @@ image_data importer<image_data>::load_from(const link& p)
         LOG_ERROR("stbi error: {}", stbi_failure_reason());
         throw runtime_error{"stbi error"};
     }
-    return {.buf = unique_ptr<uint8_t, decltype(&free)>{data, &free},
-            .size = size,
-            .channels = channels};
-}
-
-image_data importer<image_data>::load_from(span<const uint8_t> bytes)
-{
-    ivec2 size;
-    int channels;
-    auto data = stbi_load_from_memory(bytes.data(), bytes.size_bytes(), &size.x,
-                                      &size.y, &channels, 0);
-    if (!data) {
-        LOG_ERROR("stbi error: {}", stbi_failure_reason());
-        throw runtime_error{"stbi error"};
-    }
-    return {.buf = unique_ptr<uint8_t, decltype(&free)>{data, &free},
-            .size = size,
-            .channels = channels};
+    return {.buf{data}, .size = size, .channels = channels};
 }
 
 } // namespace hera

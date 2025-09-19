@@ -18,7 +18,6 @@
 #define HERA_LINK_HPP
 
 #include <hera/common.hpp>
-#include <hera/format.hpp>
 
 namespace hera {
 

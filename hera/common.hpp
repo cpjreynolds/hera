@@ -431,6 +431,28 @@ constexpr T& operator^=(T& l, T r)
     return l = l ^ r;
 }
 
+struct format_parser {
+    bool alternate = false;
+
+    template<typename ParseCtx>
+    constexpr ParseCtx::iterator parse(ParseCtx& ctx)
+    {
+        auto it = ctx.begin(), end = ctx.end();
+        if (it == end) {
+            return it;
+        }
+        for (; it != end && *it != ':' && *it != '}'; ++it) {
+            switch (*it) {
+            case '#':
+                alternate = true;
+                break;
+            default:
+                throw fmt::format_error("bad parse args");
+            }
+        }
+        return it;
+    }
+};
 } // namespace hera
 
 // logging macros

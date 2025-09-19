@@ -23,45 +23,11 @@
 
 namespace hera {
 
-// low-level byte-cache interface
-class byte_cache {
-public:
-    using buffer_type = vector<uint8_t>;
-    using value_type = shared_ptr<const buffer_type>;
-
-    // const to indicate thread safety
-    virtual value_type load(const link&) const = 0;
-
-    virtual ~byte_cache() = default;
-};
-
-class file_cache : public byte_cache {
-public:
-    value_type load(const link& p) const override;
-
-    static file_cache* get();
-
-private:
-    struct entry {
-        value_type buf;
-        fs::file_time_type mtime;
-    };
-
-    mutable hash_map<path, entry> cache;
-    mutable shared_mutex mtx;
-};
-
 template<typename T>
 struct importer {
-    // load from bytes.
-    static T load_from(span<const uint8_t>)
-    {
-        static_assert(false, "must specialize decoder::load");
-    }
-
     static T load_from(const link&)
     {
-        static_assert(false, "must specialize decoder::load");
+        static_assert(false, "must specialize importer::load_from");
     }
 };
 
@@ -71,70 +37,46 @@ concept loadable_from = requires(From from) {
 };
 
 template<typename T>
-concept loadable_from_bytes = loadable_from<T, span<const uint8_t>>;
-
-template<typename T>
-concept loadable = loadable_from_bytes<T> || loadable_from<T, path>;
+concept loadable = loadable_from<T, link>;
 
 template<typename T>
 class asset_cache {
-    byte_cache* bcache;
-    mutable hash_map<path, weak_ptr<T>> cache;
+    mutable hash_map<path, shared_ptr<T>> cache;
     mutable shared_mutex mtx;
 
 public:
     using value_type = shared_ptr<T>;
 
-    explicit asset_cache(byte_cache* bc) : bcache{bc} {}
-
     shared_ptr<T> load(const link& pat) const
     {
-        auto key = pat.resolve();
-
         // cache check
         {
             shared_lock lk{mtx};
-            if (auto it = cache.find(key); it != cache.end()) {
+            if (auto elt = cache.find(pat); elt != cache.cend()) {
                 // cache hit
-                if (auto ptr = it->second.lock(); ptr) {
-                    // valid hit
-                    LOG_DEBUG("asset_cache hit: {}", key);
-                    return ptr;
-                }
+                LOG_DEBUG("asset_cache hit: {}", pat);
+                return elt->second;
             }
         }
         // missing or expired
-        LOG_DEBUG("asset_cache load: {}", key);
         return load_into(pat);
     }
 
 private:
     shared_ptr<T> load_into(const link& pat) const
-        requires loadable_from_bytes<T>
-    {
-        // load through bcache
-        auto bytes = bcache->load(pat);
-        shared_ptr<T> ptr{new T{importer<T>::load_from(*bytes)}};
-        unique_lock lk{mtx};
-        cache[pat.resolve()] = ptr;
-        return ptr;
-    }
-
-    shared_ptr<T> load_into(const link& lnk) const
-        requires(!loadable_from_bytes<T>)
     {
         // load from filepath
-        shared_ptr<T> ptr{new T{importer<T>::load_from(lnk)}};
+        shared_ptr<T> ptr{new T{importer<T>::load_from(pat)}};
         unique_lock lk{mtx};
-        cache[lnk.resolve()] = ptr;
+        cache[pat] = ptr;
         return ptr;
     }
 };
 
-class Assets {
+class assets {
 public:
     template<typename T>
-    static shared_ptr<T> load(const path& pat)
+    static shared_ptr<T> load(const link& pat)
     {
         return get_cache<T>().load(pat);
     }
@@ -143,13 +85,16 @@ private:
     template<typename T>
     static const asset_cache<T>& get_cache()
     {
-        static asset_cache<T> cache{file_cache::get()};
+        static asset_cache<T> cache{};
         return cache;
     }
 };
 
 struct image_data {
-    unique_ptr<uint8_t, decltype(&free)> buf;
+    struct deleter {
+        void operator()(uint8_t* p) const { ::free(p); }
+    };
+    unique_ptr<uint8_t, deleter> buf;
     ivec2 size;
     int channels;
 
@@ -161,7 +106,6 @@ struct image_data {
 template<>
 struct importer<image_data> {
     static image_data load_from(const link& p);
-    static image_data load_from(span<const uint8_t> bytes);
 };
 
 } // namespace hera

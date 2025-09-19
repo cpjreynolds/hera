@@ -23,8 +23,7 @@ Texture2d::Texture2d(const path& fpath, const TextureParams& params,
                      texture_u unit)
     : Texture{unit}
 {
-    LOG_INFO("loading texture file: {}", fpath);
-    auto img = Assets::load<image_data>(fpath);
+    auto img = assets::load<image_data>(fpath);
     internal_f format;
     switch (img->channels) {
     case 1:

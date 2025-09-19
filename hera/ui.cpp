@@ -39,7 +39,7 @@ void init::ui()
 
     path fontpath = link::apply(config["font.regular"]);
 
-    auto font = io.Fonts->AddFontFromFileTTF(fontpath.native().c_str(), 14);
+    auto font = io.Fonts->AddFontFromFileTTF(fontpath.c_str(), 14);
     io.FontDefault = font;
 
     ImGui::StyleColorsDark();

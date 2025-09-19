@@ -368,8 +368,8 @@ const Shader& Shaders::loadf(const path& pat)
 void Shaders::load(const path& pat)
 {
     if (!fs::is_directory(pat)) {
-        LOG_CRITICAL("Shaders::load invalid directory: {}", pat);
-        throw hera::runtime_error("Shaders::load invalid directory");
+        LOG_ERROR("Shaders::load invalid directory: {}", pat);
+        throw runtime_error{"Shaders::load invalid directory"};
     }
     // modname -> shaders
     hash_map<string_view, vector<const Shader*>> touched;
