@@ -25,6 +25,7 @@ set(HERA_LIBRARIES
     freetype
     imgui
     Boost::container_hash
+    Boost::url
 )
 if (HERA_BUILD_ASSIMP)
     list(APPEND HERA_LIBRARIES assimp)

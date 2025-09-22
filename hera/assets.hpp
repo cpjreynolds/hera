@@ -111,6 +111,13 @@ public:
         return obj;
     }
 
+    // insert an object into the cache
+    void put(const link& pat, cached_type obj)
+    {
+        scoped_lock lk{mtx};
+        storage[pat] = std::move(obj);
+    }
+
 private:
     mutable hash_map<path, storage_type> storage;
     mutable shared_mutex mtx;
@@ -122,6 +129,12 @@ public:
     static cached_type_t<T> get(const link& pat)
     {
         return get_cache<T>().get(pat);
+    }
+
+    template<typename T>
+    static void put(const link& pat, cached_type_t<T> obj)
+    {
+        get_cache<T>().put(pat, std::move(obj));
     }
 
 private:

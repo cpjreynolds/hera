@@ -657,7 +657,7 @@ input_atlas* input_atlas::global_atlas = nullptr;
 void input_atlas::init()
 {
     LOG_DEBUG("init input_atlas");
-    auto keymap_path = link::apply("config:/keymap.toml");
+    auto keymap_path = link{"hera://core/config/keymap.toml"}.resolve();
     if (global_atlas != nullptr) {
         delete global_atlas;
     }

@@ -29,6 +29,7 @@
 #include <hera/gl/program.hpp>
 #include <hera/render/geometry.hpp>
 #include <hera/render/material.hpp>
+#include <hera/link.hpp>
 
 namespace hera {
 
@@ -37,14 +38,14 @@ class Cube : public Geometry {
     static constexpr float rotate_rate = 1.0 / 6;
     static constexpr float increment = tau * rotate_rate * tickrate();
 
-    Material material;
+    Material2 material;
     vec3 _pos;
     vec3 _axis;
     float _angle;
     float _offset;
 
 public:
-    Cube(const path& diff, const path& spec, const vec3& pos = vec3{0.0},
+    Cube(const link& diff, const link& spec, const vec3& pos = vec3{0.0},
          const vec3& axis = vec3{1.0, 0.0, 0.0}, float offset = 0.0);
 
     void draw(Frame& f, float) const override;

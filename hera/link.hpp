@@ -18,76 +18,179 @@
 #define HERA_LINK_HPP
 
 #include <hera/common.hpp>
+#include <hera/config.hpp>
+
+#include <boost/url.hpp>
 
 namespace hera {
 
+namespace urls = boost::urls;
+using urls::authority_view;
+using urls::decode_view;
+using urls::url;
+using urls::url_base;
+using urls::url_view;
+using urls::url_view_base;
+
+struct router;
+
 /*
- * a resolvable path to an asset
+ * Types of URLs:
+ *
+ *  * relative (uses context stack)
+ *      - path/to/file
+ *      - /path/to/file
+ *
+ *  * source-relative: (assumes source=core)
+ *      - hera:///domain/file
+ *      - hera:/domain/file
+ *      - hera:domain/file
+ *
+ *  * Complete:
+ *
+ *      - hera://source/domain/file
+ *      - hera://source
+ *      - //source/domain/file (assumes scheme=hera)
  */
 class link {
-    // invariant: always has at least the domain separator
-    // simplifies the code a LOT
-    string _buf{domain_separator};
-    // cached resolved path
-    mutable path _pat;
-
-    // thread local context for relative paths
-    static thread_local vector<link> _pathstack;
-
-    friend fmt::formatter<link>;
-
 public:
-    static constexpr string_view domain_separator = ":/";
+    link() noexcept = default;
+    link(url&& u) : loc{std::move(u)} { validate(); };
+    link(const url_view_base& u) : loc{u} { validate(); };
 
-    // constructs an empty link
-    link() = default;
-    // constructs a link from a path
-    link(const path&);
+    template<typename S>
+        requires convertible_to<const S&, string_view>
+    link(const S& s);
 
-    // resolves the link to a concrete path
+    // resolve the link to a filepath. optionally reloading the cached value
     const path& resolve(bool reload = false) const;
-    operator const path&() const;
 
-    // push a path onto the thread local path stack
-    static void push(const link&);
-    // pop a path from the thread local path stack
+    /*
+     * Context
+     */
+
+    // convenience function for creating a `link` and resolving it in one call
+    static path apply(string_view);
+    // push a url to the context stack
+    static void push(const url_view_base&);
+    // push a url to the context stack
+    static void push(url&&);
+    // pop the topmost element from context.
     static void pop();
+    // push `this` to the context stack.
+    void push() const;
 
-    // the current prefix that will be prepended to resolved relative links
-    static path prefix();
+    /*
+     * Conversions
+     */
+    const url_view_base* operator->() const { return &loc; }
+    url_base* operator->()
+    {
+        uncache();
+        return &loc;
+    }
 
-    static path apply(const path&);
+    operator const path&() const { return resolve(); }
+    operator string_view() const { return resolve().native(); }
 
-    bool has_domain() const;
-    bool has_location() const;
-    bool has_filename() const;
+    /*
+     * Queries
+     */
 
-    string_view filename() const;
-    string_view extension() const;
-    string_view stem() const;
+    // return true if link has scheme/source/domain
+    bool is_complete() const;
+    // return true if link is just a path
+    bool is_relative() const;
+    // return true if empty
+    bool empty() const { return loc.empty(); }
 
-    // returns true if the link has no domain.
-    bool is_relative() const { return !has_domain(); }
-    // returns true if the link has a domain.
-    bool is_absolute() const { return has_domain(); }
+    /*
+     * Decomposition
+     */
 
-    string_view domain() const;
-    link& set_domain(string_view);
+    // returns a link to the parent directory
+    link parent_path() const;
 
-    string_view location() const;
-    link& set_location(string_view);
+    /*
+     * Modifiers
+     */
 
-    bool empty() const;
-    void clear();
-
-    link& append(string_view);
+    // append elements to the path
+    template<typename S>
+        requires convertible_to<const S&, string_view>
+    link& append(const S& s);
     link& append(const link&);
+    link& append(const url_view_base&);
 
-    link& operator/=(string_view s) { return append(s); }
-    link& operator/=(const link& l) { return append(l); }
+private:
+    static thread_local vector<url> ctx;
+    url loc;
+    mutable path cached;
 
-    link operator/(string_view) const;
-    link operator/(const link&) const;
+    // clear the cached path
+    void uncache() const { cached.clear(); }
+    // insert missing scheme/source
+    void validate();
+    static bool is_complete(const url&);
+    static bool is_relative(const url&);
+
+    url prefix() const;
+};
+
+template<typename S>
+    requires convertible_to<const S&, string_view>
+link::link(const S& s) : loc{s}
+{
+    validate();
+};
+
+template<typename S>
+    requires convertible_to<const S&, string_view>
+link& link::append(const S& s)
+{
+    return append(url_view{s});
+}
+
+// a router can resolve the urls it accepts
+struct router {
+    virtual ~router() = default;
+
+    virtual string_view key() const = 0;
+    virtual path resolve(const url_view_base&) const = 0;
+};
+
+struct dir_router : public router {
+    string id;
+    // domain -> path
+    hash_map<string, string> domains;
+
+    string_view key() const override { return id; }
+
+    path resolve(const url_view_base&) const override;
+
+    dir_router(const toml::table& tbl)
+    {
+        id = tbl["id"].value_or("null");
+        auto doms = tbl.at("domain").as_array();
+        if (!doms) {
+            throw runtime_error("bad provider");
+        }
+        doms->for_each(
+            [&](const toml::table& dom) { domains.emplace(make_domain(dom)); });
+    }
+
+    static pair<string, string> make_domain(const toml::table& dom)
+    {
+        return {dom["id"].value_or("null"), dom["path"].value_or("null")};
+    }
+};
+
+struct mount_table {
+    inline static hash_map<string, unique_ptr<router>> routers;
+
+    static path resolve(const url_view_base&);
+
+    static void init();
 };
 
 } // namespace hera
@@ -96,7 +199,7 @@ template<>
 struct fmt::formatter<hera::link> : hera::format_parser {
     auto format(const hera::link& val, auto& ctx) const
     {
-        return fmt::format_to(ctx.out(), "{}", val._buf);
+        return fmt::format_to(ctx.out(), "{}", val->buffer());
     }
 };
 

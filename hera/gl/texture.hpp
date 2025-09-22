@@ -20,6 +20,8 @@
 #include <hera/common.hpp>
 #include <hera/error.hpp>
 #include <hera/gl/object.hpp>
+#include <hera/link.hpp>
+#include <hera/image.hpp>
 
 namespace hera::gl {
 
@@ -135,8 +137,13 @@ struct TextureArray : Texture<texture_t::array_2d> {
 };
 
 struct Texture2d : Texture<texture_t::twoD> {
-    Texture2d(const path& fpath, const TextureParams& params = {},
+    using Texture::Texture;
+
+    Texture2d(const link& fpath, const TextureParams& params = {},
               texture_u unit = 0);
+
+    void allocate(const image_data&, const TextureParams& = {});
+    void allocate(const link&, const TextureParams& = {});
 };
 
 } // namespace hera::gl

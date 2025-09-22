@@ -20,6 +20,7 @@
 #include <hera/toml.hpp>
 #include <hera/gl/common.hpp>
 #include <hera/event.hpp>
+#include <hera/link.hpp>
 
 #include <hera/config.hpp>
 

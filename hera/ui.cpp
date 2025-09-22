@@ -37,7 +37,9 @@ void init::ui()
 
     Config config{};
 
-    path fontpath = link::apply(config["font.regular"]);
+    auto x = config.at<string>("font.regular");
+
+    auto fontpath = hera::link{x}.resolve();
 
     auto font = io.Fonts->AddFontFromFileTTF(fontpath.c_str(), 14);
     io.FontDefault = font;

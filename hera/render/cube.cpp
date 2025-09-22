@@ -75,7 +75,7 @@ static constexpr cube_vertex vertices[] = {
 template<>
 struct gl::vertex<cube_vertex> : attributes<vec3, vec3, vec2> {};
 
-Cube::Cube(const path& diff, const path& spec, const vec3& pos,
+Cube::Cube(const link& diff, const link& spec, const vec3& pos,
            const vec3& axis, float offset)
     : Geometry{vertices},
       material{{diff, {.min_filter = GL_LINEAR_MIPMAP_LINEAR}, 0},

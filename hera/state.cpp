@@ -22,6 +22,8 @@
 #include <hera/state.hpp>
 #include <hera/event.hpp>
 #include <hera/ui.hpp>
+#include <hera/assets.hpp>
+#include <hera/render/model.hpp>
 
 using hera::Cube;
 
@@ -117,7 +119,8 @@ void State::on_action(input_action act)
 void State::prologue()
 {
     gl::checkerror();
-    Cube mastercube{"data:/container2.png", "data:/container2_specular.png"};
+    Cube mastercube{"hera:data/container2.png",
+                    "hera:data/container2_specular.png"};
     gl::checkerror();
 
     std::mt19937 rgen{std::random_device{}()};
@@ -150,7 +153,8 @@ void State::prologue()
     plights.push_back(PointLight{{-4.0, 2.0, -12.0}});
     plights.push_back(PointLight{{0.0, 0.0, -3.0}});
 
-    Cube othercube{"data:/container2.png", "data:/container2_specular.png"};
+    auto x = assets::get<Model>(link{"hera:data/backpack/backpack.obj"});
+
     do_input();
     gl::checkerror();
     renderer->pipeline("scene");

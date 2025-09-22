@@ -18,12 +18,36 @@
 
 namespace hera {
 
-void Material::load_into(const string& root, const gl::Pipeline& prog) const
+void Material2::load_into(const string& root, const gl::Pipeline& prog) const
 {
     prog.uniform(root + ".diffuse", diffuse.unit());
     prog.uniform(root + ".specular", specular.unit());
     prog.uniform(root + ".shine", shine);
     gl::checkerror();
+}
+
+Material::Material(const aiMaterial* mat)
+{
+    aiColor3D color;
+    if (mat->Get(AI_MATKEY_COLOR_AMBIENT, color)) {
+        color_ambient = to_glm(color);
+    }
+    if (mat->Get(AI_MATKEY_COLOR_DIFFUSE, color)) {
+        color_diffuse = to_glm(color);
+    }
+    if (mat->Get(AI_MATKEY_COLOR_SPECULAR, color)) {
+        color_specular = to_glm(color);
+    }
+    mat->Get(AI_MATKEY_SHININESS, shininess);
+
+    aiString pat;
+    mat->GetTexture(aiTextureType_DIFFUSE, 0, &pat);
+    link lnk{pat.C_Str()};
+    tex_diffuse.allocate(lnk);
+
+    mat->GetTexture(aiTextureType_SPECULAR, 0, &pat);
+    lnk = {pat.C_Str()};
+    tex_specular.allocate(lnk);
 }
 
 } // namespace hera

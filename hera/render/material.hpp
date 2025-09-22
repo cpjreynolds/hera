@@ -20,15 +20,35 @@
 #include <hera/assets.hpp>
 #include <hera/gl/texture.hpp>
 #include <hera/gl/program.hpp>
+#include <hera/render/assimp_util.hpp>
+
+#include <assimp/scene.h>
 
 namespace hera {
 
 struct Material {
+    vec3 color_ambient{1.0};
+    vec3 color_diffuse{1.0};
+    vec3 color_specular{1.0};
+    float shininess{1.0};
+    gl::Texture2d tex_diffuse;
+    gl::Texture2d tex_specular;
+
+    Material() = default;
+    Material(const aiMaterial*);
+};
+
+template<>
+struct asset<Material[]> {
+    shared_ptr<Material[]> load_from(const link& p);
+};
+
+struct Material2 {
     gl::Texture2d diffuse;
     gl::Texture2d specular;
     float shine;
 
-    Material(gl::Texture2d diff, gl::Texture2d spec, float shine)
+    Material2(gl::Texture2d diff, gl::Texture2d spec, float shine)
         : diffuse{std::move(diff)},
           specular{std::move(spec)},
           shine{shine} {};

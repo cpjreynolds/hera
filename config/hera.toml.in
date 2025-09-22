@@ -1,28 +1,35 @@
 [logging]
 level = "debug"
 
-[font]
-regular = "fonts:/dejavu/DejaVuSansMono.ttf"
-bold = "fonts:/dejavu/DejaVuSansMono-Bold.ttf"
-oblique = "fonts:/dejavu/DejaVuSansMono-Oblique.ttf"
-bold_oblique = "fonts:/dejavu/DejaVuSansMono-BoldOblique.ttf"
+[[provider]]
+id = "core"
 
-[[domain]]
-id = "config"
-path = "."
-
-[[domain]]
+[[provider.domain]]
 id = "assets"
 path = "@HERA_ASSETS_PATH@"
 
-[[domain]]
+[[provider.domain]]
 id = "shaders"
-path = "assets:/shaders"
+path = "@HERA_ASSETS_PATH@/shaders"
 
-[[domain]]
+[[provider.domain]]
 id = "data"
-path = "assets:/data"
+path = "@HERA_ASSETS_PATH@/data"
 
-[[domain]]
+[[provider.domain]]
 id = "fonts"
-path = "assets:/fonts"
+path = "@HERA_ASSETS_PATH@/fonts"
+
+[[provider.domain]]
+id = "config"
+path = "."
+
+[filesystem]
+default_provider = "core"
+
+[font]
+regular = "hera:fonts/dejavu/DejaVuSansMono.ttf"
+bold = "hera:fonts/dejavu/DejaVuSansMono-Bold.ttf"
+oblique = "hera:fonts/dejavu/DejaVuSansMono-Oblique.ttf"
+bold_oblique = "hera:fonts/dejavu/DejaVuSansMono-BoldOblique.ttf"
+

@@ -23,7 +23,7 @@ namespace hera {
 Renderer::Renderer(const Config&, Private) : _window{glfwGetCurrentContext()}
 {
     LOG_DEBUG("init renderer");
-    path shaderpath = link::apply("shaders:/");
+    path shaderpath = link::apply("hera:shaders");
     shaders.load(shaderpath);
     LOG_INFO("{}", *this);
     LOG_DEBUG("init renderer done");
