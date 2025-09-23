@@ -116,6 +116,11 @@ void link::push() const
     push(loc);
 }
 
+void link::push() &&
+{
+    ctx.emplace_back(std::move(loc));
+}
+
 void link::pop()
 {
     // keep default
@@ -142,7 +147,29 @@ link link::parent_path() const
     return rv;
 }
 
-path dir_router::resolve(const url_view_base& u) const
+string link::filename() const
+{
+    return loc.segments().back();
+}
+
+string link::stem() const
+{
+    auto fname = filename();
+    if (auto pos = fname.rfind('.'); pos != fname.npos) {
+        fname.erase(pos);
+    }
+    return fname;
+}
+
+string link::extension() const
+{
+    auto fname = filename();
+    auto pos = fname.rfind('.');
+    fname.erase(0, pos);
+    return fname;
+}
+
+path filesystem_router::resolve(const url_view_base& u) const
 {
     auto segs = u.encoded_segments();
     auto sview = ranges::subrange(segs, segs.size());
@@ -170,7 +197,7 @@ void mount_table::init()
 
     cfg_provs.for_each([](const toml::table& elt) {
         routers.emplace(elt["id"].value_or("null"),
-                        std::make_unique<dir_router>(elt));
+                        std::make_unique<filesystem_router>(elt));
     });
 
     for (const auto& elt : routers) {
@@ -194,5 +221,15 @@ void init::link()
 {
     mount_table::init();
 }
+
+struct route_key {
+    string key;
+};
+
+struct routing_table {
+    hash_map<string, unique_ptr<router>> routers;
+
+    router* find() const;
+};
 
 } // namespace hera

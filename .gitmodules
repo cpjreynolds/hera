@@ -50,3 +50,6 @@
 	url = git@github.com:ocornut/imgui.git
     shallow = true
     branch = master
+[submodule "extern/hat-trie"]
+	path = extern/hat-trie
+	url = git@github.com:cpjreynolds/hat-trie.git

@@ -32,8 +32,6 @@ using urls::url_base;
 using urls::url_view;
 using urls::url_view_base;
 
-struct router;
-
 /*
  * Types of URLs:
  *
@@ -79,6 +77,8 @@ public:
     static void pop();
     // push `this` to the context stack.
     void push() const;
+    // move `this` onto the context stack
+    void push() &&;
 
     /*
      * Conversions
@@ -110,6 +110,9 @@ public:
 
     // returns a link to the parent directory
     link parent_path() const;
+    string filename() const;
+    string extension() const;
+    string stem() const;
 
     /*
      * Modifiers
@@ -157,20 +160,21 @@ struct router {
 
     virtual string_view key() const = 0;
     virtual path resolve(const url_view_base&) const = 0;
+
+    virtual unique_ptr<iostream> get(const url_view_base&) const = 0;
 };
 
-struct dir_router : public router {
-    string id;
+struct filesystem_router : public router {
+    string source_id;
     // domain -> path
     hash_map<string, string> domains;
 
-    string_view key() const override { return id; }
-
     path resolve(const url_view_base&) const override;
 
-    dir_router(const toml::table& tbl)
+    // create a new `directory_router` from toml config
+    filesystem_router(const toml::table& tbl)
     {
-        id = tbl["id"].value_or("null");
+        source_id = tbl["id"].value_or("null");
         auto doms = tbl.at("domain").as_array();
         if (!doms) {
             throw runtime_error("bad provider");
