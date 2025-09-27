@@ -29,7 +29,7 @@
 #include <hera/gl/program.hpp>
 #include <hera/render/geometry.hpp>
 #include <hera/render/material.hpp>
-#include <hera/link.hpp>
+#include <hera/io/link.hpp>
 
 namespace hera {
 

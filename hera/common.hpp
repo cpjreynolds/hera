@@ -66,12 +66,18 @@
 #include <quill/std/UnorderedMap.h>
 #include <quill/bundled/fmt/format.h>
 #include <quill/bundled/fmt/ostream.h>
+#include <quill/bundled/fmt/ranges.h>
 #include <quill/DirectFormatCodec.h>
 #include <quill/DeferredFormatCodec.h>
 
 #include <oneapi/tbb/concurrent_queue.h>
 
 #include <boost/container_hash/hash.hpp>
+#include <boost/unordered/unordered_node_map.hpp>
+#include <boost/unordered/unordered_flat_map.hpp>
+#include <boost/unordered/unordered_node_set.hpp>
+#include <boost/unordered/unordered_flat_set.hpp>
+#include <boost/stl_interfaces/iterator_interface.hpp>
 
 // needs to be in global for specializations
 namespace fmt = fmtquill;
@@ -138,10 +144,10 @@ using std::u32string;
 using std::u32string_view;
 using std::unique_lock;
 using std::unique_ptr;
-using std::unordered_map;
-using std::unordered_multimap;
-using std::unordered_multiset;
-using std::unordered_set;
+// using std::unordered_map;
+// using std::unordered_multimap;
+// using std::unordered_multiset;
+// using std::unordered_set;
 using std::variant;
 using std::vector;
 using std::weak_ptr;
@@ -173,6 +179,12 @@ using std::bit_cast;
 using std::declval;
 
 /*
+ * ==[[boost]]==
+ */
+using boost::stl_interfaces::iterator_interface;
+using boost::stl_interfaces::proxy_iterator_interface;
+
+/*
  * ==[[GLM]]==
  */
 using glm::ivec2;
@@ -197,13 +209,9 @@ using glm::vec3;
 using glm::vec4;
 
 /*
- * ==[[oneTBB]]==
- */
-using oneapi::tbb::concurrent_queue;
-
-/*
  * ==[[concepts and traits]]==
  */
+using std::constructible_from;
 using std::convertible_to;
 using std::copy_constructible;
 using std::decay_t;
@@ -364,12 +372,22 @@ constexpr size_t size_bytes(const R& r)
 }
 
 /*
- * ==[[hash support]]==
+ * ==[[containers]]==
+ */
+
+using boost::unordered::unordered_flat_map;
+using boost::unordered::unordered_flat_set;
+using boost::unordered::unordered_node_map;
+using boost::unordered::unordered_node_set;
+using oneapi::tbb::concurrent_queue;
+
+/*
+ * ==[[hash support]==
  */
 
 // transparent hasher
 template<typename T>
-struct trans_hash : boost::hash<T> {
+struct trans_hash : public boost::hash<T> {
     using is_transparent = void;
 };
 
@@ -378,19 +396,19 @@ using borrowed_type = std::conditional_t<same_as<T, string>, string_view, T>;
 
 template<typename K, typename T, typename H = borrowed_type<K>,
          typename C = std::equal_to<>>
-using hash_map = unordered_map<K, T, trans_hash<H>, C>;
+using hash_map = unordered_flat_map<K, T, trans_hash<H>, C>;
+
+template<typename T, typename H = borrowed_type<T>,
+         typename C = std::equal_to<>>
+using hash_set = unordered_flat_set<T, trans_hash<H>, C>;
 
 template<typename K, typename T, typename H = borrowed_type<K>,
          typename C = std::equal_to<>>
-using hash_multimap = unordered_multimap<K, T, trans_hash<H>, C>;
+using hash_node_map = unordered_node_map<K, T, trans_hash<H>, C>;
 
 template<typename T, typename H = borrowed_type<T>,
          typename C = std::equal_to<>>
-using hash_set = unordered_set<T, trans_hash<H>, C>;
-
-template<typename T, typename H = borrowed_type<T>,
-         typename C = std::equal_to<>>
-using hash_multiset = unordered_multiset<T, trans_hash<H>, C>;
+using hash_node_set = unordered_node_set<T, trans_hash<H>, C>;
 
 /*
  * ==[[bitfield support]]==

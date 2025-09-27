@@ -20,8 +20,8 @@
 #include <hera/common.hpp>
 #include <hera/error.hpp>
 #include <hera/gl/object.hpp>
-#include <hera/link.hpp>
-#include <hera/image.hpp>
+#include <hera/io/link.hpp>
+#include <hera/io/image.hpp>
 
 namespace hera::gl {
 

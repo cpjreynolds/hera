@@ -17,7 +17,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include <hera/image.hpp>
+#include <hera/io/image.hpp>
 #include <hera/error.hpp>
 
 namespace hera {

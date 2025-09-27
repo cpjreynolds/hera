@@ -18,7 +18,7 @@
 #define HERA_LOADER_HPP
 
 #include <hera/common.hpp>
-#include <hera/link.hpp>
+#include <hera/io/link.hpp>
 
 namespace hera {
 
@@ -80,7 +80,7 @@ public:
     {
         {
             shared_lock lk{mtx};
-            if (auto elt = storage.find(pat); elt != storage.end()) {
+            if (auto elt = storage.find(*pat); elt != storage.end()) {
                 // cache hit
                 if constexpr (weak_asset<T>) {
                     if (auto obj = elt->second.lock(); obj) {
@@ -107,7 +107,7 @@ public:
         asset<T> importer;
         cached_type obj = importer.load_from(pat);
         scoped_lock lk{mtx};
-        storage[pat] = obj;
+        storage[*pat] = obj;
         return obj;
     }
 
@@ -115,7 +115,7 @@ public:
     void put(const link& pat, cached_type obj)
     {
         scoped_lock lk{mtx};
-        storage[pat] = std::move(obj);
+        storage[*pat] = std::move(obj);
     }
 
 private:

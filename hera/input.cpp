@@ -19,7 +19,7 @@
 #include <hera/init.hpp>
 #include <hera/config.hpp>
 #include <hera/ui.hpp>
-#include <hera/link.hpp>
+#include <hera/io/link.hpp>
 
 using scancode_t = hera::key_event::scancode_t;
 using modifier_t = hera::key_event::modifier_t;
@@ -31,7 +31,7 @@ namespace {
 // scancode -> key LUT
 static keycode_t scancode_map[GLFW_KEY_LAST];
 
-static unordered_map<string, key_event> string_keys;
+static hash_map<string, key_event> string_keys;
 
 void init_string_key_map()
 {
@@ -620,7 +620,8 @@ input_map::map_t input_map::from_toml(const toml::table& table)
 
 input_map::map_t input_map::make_default()
 {
-    map_t mapping{std::from_range, input_action::defaults()};
+    auto defs = input_action::defaults();
+    map_t mapping{defs.begin(), defs.end()};
     return mapping;
 }
 
@@ -657,11 +658,13 @@ input_atlas* input_atlas::global_atlas = nullptr;
 void input_atlas::init()
 {
     LOG_DEBUG("init input_atlas");
-    auto keymap_path = link{"hera://core/config/keymap.toml"}.resolve();
+    link kmap{"hera://core/config/keymap.toml"};
+    LOG_DEBUG("constructed");
+    // auto keymap_path = link{"hera://core/config/keymap.toml"}.resolve();
     if (global_atlas != nullptr) {
         delete global_atlas;
     }
-    global_atlas = new input_atlas{keymap_path};
+    global_atlas = new input_atlas{*kmap};
     LOG_DEBUG("init input_atlas done");
 }
 

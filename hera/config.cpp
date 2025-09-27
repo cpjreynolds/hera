@@ -17,7 +17,6 @@
 #include <hera/utility.hpp>
 #include <hera/error.hpp>
 #include <hera/init.hpp>
-#include <hera/toml.hpp>
 #include <hera/config.hpp>
 
 #include <hera/lua.hpp>

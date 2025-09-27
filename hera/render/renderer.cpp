@@ -16,7 +16,7 @@
 
 #include <hera/window.hpp>
 #include <hera/render/renderer.hpp>
-#include <hera/link.hpp>
+#include <hera/io/link.hpp>
 
 namespace hera {
 

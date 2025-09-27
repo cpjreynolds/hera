@@ -21,7 +21,7 @@
 
 #include <hera/common.hpp>
 #include <hera/error.hpp>
-#include <hera/toml.hpp>
+#include <hera/io/toml.hpp>
 #include <hera/lua.hpp>
 #include <hera/config.hpp>
 #include <hera/event.hpp>
@@ -355,7 +355,7 @@ inline constexpr decltype(input_action::actions) input_action::actions = {
 struct input_map {
     using hasher = trans_hash<uint16_t>;
     using map_t =
-        unordered_map<key_event, input_action, hasher, std::equal_to<>>;
+        unordered_flat_map<key_event, input_action, hasher, std::equal_to<>>;
 
     input_map() : mapping{make_default()} {};
     input_map(const toml::table& t) : mapping{from_toml(t)} {};
@@ -380,7 +380,8 @@ private:
 
 class input_atlas {
     using hasher = trans_hash<string_view>;
-    using atlas_t = unordered_map<string, input_map, hasher, std::equal_to<>>;
+    using atlas_t = hash_map<string, input_map>;
+    // unordered_flat_map<string, input_map, hasher, std::equal_to<>>;
     using stack_t = vector<pair<const input_map*, bool>>;
     friend struct fmt::formatter<input_atlas>;
 

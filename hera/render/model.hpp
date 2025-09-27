@@ -17,7 +17,7 @@
 #ifndef HERA_RENDER_MODEL_HPP
 #define HERA_RENDER_MODEL_HPP
 
-#include <hera/assets.hpp>
+#include <hera/io/assets.hpp>
 
 namespace hera {
 

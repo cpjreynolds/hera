@@ -25,6 +25,8 @@ set(HERA_LIBRARIES
     freetype
     imgui
     Boost::container_hash
+    Boost::unordered
+    Boost::stl_interfaces
     Boost::url
 )
 if (HERA_BUILD_ASSIMP)

@@ -17,7 +17,7 @@
 #define HERA_CONFIG_HPP
 
 #include <hera/common.hpp>
-#include <hera/toml.hpp>
+#include <hera/io/toml.hpp>
 #include <hera/error.hpp>
 #include <hera/utility.hpp>
 #include <hera/init.hpp>

@@ -17,6 +17,7 @@
 #include <cstdlib>
 
 #include <cpptrace/cpptrace.hpp>
+#include <cpptrace/formatting.hpp>
 
 #include <hera/common.hpp>
 #include <hera/init.hpp>
@@ -46,11 +47,11 @@ namespace {
 [[noreturn]] void terminate_handler()
 {
 #if HERA_NICEABORT
-    LOG_CRITICAL("terminating with exit(0)");
+    LOG_INFO("terminating with exit(0)");
     quill::flush();
     std::exit(1);
 #else // !NICEABORT
-    LOG_CRITICAL("terminating with abort()");
+    LOG_INFO("terminating with abort()");
     quill::flush();
     std::abort();
 #endif
@@ -59,60 +60,75 @@ namespace {
 #else // !STACKTRACE
 #include <unistd.h>
 
+void replace_all(string&, string_view, string_view);
 string fixup_trace(string&);
 void fixup_nested_pair(string&, char, char, size_t startpos = 0,
                        ptrdiff_t mintrim = 4, string_view repl = "…");
-void fixup_namespaces(string&);
-void fixup_longnames(string&);
 void fixup_filepaths(string&);
 
 [[noreturn]] void terminate_handler()
 {
 #if HERA_NICEABORT
-    LOG_ERROR("terminating with exit(0)");
+    LOG_INFO("terminating with exit(0)");
 #else
-    LOG_ERROR("terminating with abort()");
+    LOG_INFO("terminating with abort()");
 #endif
     bool istty = isatty(STDOUT_FILENO);
     ostringstream buf;
+
+    using color_mode = cpptrace::formatter::color_mode;
+    using path_mode = cpptrace::formatter::path_mode;
+    using address_mode = cpptrace::formatter::address_mode;
+    using symbol_mode = cpptrace::formatter::symbol_mode;
+    using cpptrace::generate_trace;
+    auto fmt = cpptrace::formatter{}
+                   .colors(istty ? color_mode::always : color_mode::none)
+                   .addresses(address_mode::none)
+                   .paths(path_mode::basename)
+                   .symbols(symbol_mode::pretty);
+
     try {
         auto ptr = std::current_exception();
         if (ptr == nullptr) {
-            buf << "terminate called without an active exception\n";
-            cpptrace::generate_trace().print(buf, istty);
+            std::println(buf, "terminate called without an active exception");
+            fmt.print(buf, generate_trace());
         }
         else {
             std::rethrow_exception(ptr);
         }
     }
     catch (cpptrace::exception& e) {
-        buf << "terminate after throwing: "
-            << cpptrace::demangle(typeid(e).name()) << "\n\t" << e.message()
-            << '\n';
-        auto roughtrace = e.trace().to_string(istty);
-        auto trace = fixup_trace(roughtrace);
-        buf.write(trace.c_str(), trace.size());
+        std::println(buf,
+                     "terminate called after throwing an instance of {}: {}",
+                     cpptrace::demangle(typeid(e).name()), e.message());
+        // auto roughtrace = e.trace().to_string(istty);
+        // auto trace = fixup_trace(roughtrace);
+        // buf.write(trace.c_str(), trace.size());
+        fmt.print(buf, generate_trace(3));
     }
     catch (std::exception& e) {
-        buf << "terminate after throwing: "
-            << cpptrace::demangle(typeid(e).name()) << ": " << e.what() << '\n';
-        cpptrace::generate_trace().print(buf, istty);
+        std::println(buf,
+                     "terminate called after throwing an instance of {}: {}",
+                     cpptrace::demangle(typeid(e).name()), e.what());
+        fmt.print(buf, generate_trace(3));
     }
     catch (...) {
-        buf << "terminate after throwing unknown exception\n";
-        cpptrace::generate_trace().print(buf, istty);
+        std::println(buf, "terminate after throwing unknown exception");
+        fmt.print(buf, generate_trace(3));
     }
 
     if (istty) {
         hera::global_log->flush_log();
-        auto bufdata = buf.view();
+        auto bufdata = buf.str();
         constexpr string_view sgr0 = "\033[0m\n";
         std::cout.write(sgr0.data(), sgr0.size());
-        std::cout.write(bufdata.data(), bufdata.size());
+        auto out = fixup_trace(bufdata);
+        std::cout.write(out.data(), out.size());
+        // std::cout.write(bufdata.data(), bufdata.size());
         std::cout.flush();
     }
     else {
-        LOG_CRITICAL("{}", std::move(buf).str());
+        LOG_ERROR("{}", std::move(buf).str());
         hera::global_log->flush_log();
     }
 #if HERA_NICEABORT
@@ -120,6 +136,14 @@ void fixup_filepaths(string&);
 #else
     std::abort();
 #endif
+}
+void replace_all(string& str, string_view substr, string_view replacement)
+{
+    auto pos = 0uz;
+    while ((pos = str.find(substr.data(), pos, substr.size())) != str.npos) {
+        str.replace(pos, substr.size(), replacement.data(), replacement.size());
+        pos += replacement.size();
+    }
 }
 
 string fixup_trace(string& trace)
@@ -131,8 +155,11 @@ string fixup_trace(string& trace)
             fixup_nested_pair(line, '<', '>');
             fixup_nested_pair(line, '(', ')');
         }
-        fixup_namespaces(line);
-        fixup_longnames(line);
+        replace_all(line, "std::__1::", "");
+        replace_all(line, "fmtquill::v11", "fmt");
+        replace_all(line, "hera::", "");
+        replace_all(line, "std::", "");
+        replace_all(line, "protected_function_result", "pfr");
         fixup_filepaths(line);
         buf.append(line);
         buf.push_back('\n');
@@ -184,24 +211,6 @@ void fixup_nested_pair(string& line, char och, char cch, size_t startpos,
             startpos = 0;
         }
     } while (startpos != 0);
-}
-
-void fixup_namespaces(string& line)
-{
-    constexpr string_view pattern = "std::__1::";
-    size_t loc = 0;
-    while ((loc = line.find(pattern)) != line.npos) {
-        line.erase(loc, pattern.size());
-    }
-}
-
-void fixup_longnames(string& line)
-{
-    constexpr string_view lname = "protected_function_result";
-    size_t loc;
-    while ((loc = line.find(lname)) != line.npos) {
-        line.replace(loc, lname.size(), "pfr");
-    }
 }
 
 void fixup_filepaths(string& line)

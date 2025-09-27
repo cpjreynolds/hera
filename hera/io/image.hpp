@@ -18,7 +18,7 @@
 #define HERA_IMAGE_HPP
 
 #include <hera/common.hpp>
-#include <hera/assets.hpp>
+#include <hera/io/assets.hpp>
 
 namespace hera {
 

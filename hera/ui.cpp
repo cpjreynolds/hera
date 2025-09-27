@@ -20,7 +20,7 @@
 #include <hera/init.hpp>
 #include <hera/input.hpp>
 #include <hera/config.hpp>
-#include <hera/link.hpp>
+#include <hera/io/link.hpp>
 
 namespace hera {
 

@@ -145,7 +145,7 @@ void Shader::index_fnames()
 {
     // filename to index
     // (doesnt need to own the key string)
-    unordered_map<string, string> fn_num;
+    hash_map<string, string> fn_num;
 
     istringstream iss{std::move(_source)};
     _source.clear();

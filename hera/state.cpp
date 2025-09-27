@@ -22,7 +22,7 @@
 #include <hera/state.hpp>
 #include <hera/event.hpp>
 #include <hera/ui.hpp>
-#include <hera/assets.hpp>
+#include <hera/io/assets.hpp>
 #include <hera/render/model.hpp>
 
 using hera::Cube;

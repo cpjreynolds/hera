@@ -28,7 +28,7 @@ struct init {
     static void logging();
     static void error();
     static void config();
-    static void link();
+    static void route_table();
     static GLFWwindow* window();
     static void gl();
     static void input();
@@ -49,7 +49,7 @@ struct init_handle {
         init::logging();
         init::error();
         init::config();
-        init::link();
+        init::route_table();
         init::window();
         init::gl();
         init::input();
